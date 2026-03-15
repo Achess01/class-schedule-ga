@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: class-schedule-ga
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: class-schedule-ga
+      POSTGRES_USER: class-user
+      POSTGRES_PASSWORD: class-pass
+    volumes:
+      - schedule_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  schedule_data:
