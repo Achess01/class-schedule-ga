@@ -1,0 +1,16 @@
+model ConfigProfessor {
+  configProfessorId BigInt @id
+  professorCode     Int
+  scheduleConfigId  BigInt
+
+  professor      Professor      @relation(fields: [professorCode], references: [professorCode])
+  scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])
+
+  courseProfessors ConfigCourseProfessor[]
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}

@@ -1,0 +1,15 @@
+model ConfigClassroom {
+  configClassroomId BigInt @id
+  classroomId       Int
+  scheduleConfigId  BigInt
+  typeOfSchedule    String
+
+  classroom      Classroom      @relation(fields: [classroomId], references: [classroomId])
+  scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}

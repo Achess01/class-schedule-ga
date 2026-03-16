@@ -1,0 +1,26 @@
+model ScheduleConfig {
+  scheduleConfigId BigInt @id
+  periodDurationM  Int
+
+  morningStartTime   DateTime
+  morningEndTime     DateTime
+  afternoonStartTime DateTime
+  afternoonEndTime   DateTime
+
+  maxGeneration         Int?
+  startPopulationNumber String?
+
+  selectionMethod Int
+  crossMethod     Int
+  mutationMethod  Int
+
+  configCourses    ConfigCourse[]
+  configProfessors ConfigProfessor[]
+  configClassrooms ConfigClassroom[]
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}

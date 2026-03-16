@@ -1,0 +1,10 @@
+model Career {
+  careerCode Int    @id @default(autoincrement())
+  name       String
+  courseCareers CourseCareer[]
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}

@@ -1,0 +1,18 @@
+model Course {
+  courseCode      Int    @id
+  name            String
+  semester        Int?
+  isMandatory     Boolean
+  hasLab          Boolean
+  numberOfPeriods Int
+  typeOfSchedule  String
+
+  configCourses ConfigCourse[]
+  courseCareers CourseCareer[]
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}
