@@ -35,7 +35,11 @@ export class CourseService {
     return course;
   }
 
-  async update(courseCode: number, updateCourseDto: UpdateCourseDto, userId: number) {
+  async update(
+    courseCode: number,
+    updateCourseDto: UpdateCourseDto,
+    userId: number,
+  ) {
     await this.findOne(courseCode);
 
     return this.prismaService.course.update({

@@ -8,7 +8,10 @@ export class ConfigCourseService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createDto: CreateConfigCourseDto, userId: number) {
-    await this.ensureDependencies(createDto.scheduleConfigId, createDto.courseCode);
+    await this.ensureDependencies(
+      createDto.scheduleConfigId,
+      createDto.courseCode,
+    );
 
     return this.prismaService.configCourse.create({
       data: {
@@ -36,17 +39,26 @@ export class ConfigCourseService {
     });
 
     if (!entity || !entity.active) {
-      throw new NotFoundException(`ConfigCourse with id ${configCourseId} not found`);
+      throw new NotFoundException(
+        `ConfigCourse with id ${configCourseId} not found`,
+      );
     }
 
     return entity;
   }
 
-  async update(configCourseId: number, updateDto: UpdateConfigCourseDto, userId: number) {
+  async update(
+    configCourseId: number,
+    updateDto: UpdateConfigCourseDto,
+    userId: number,
+  ) {
     await this.findOne(configCourseId);
 
     if (updateDto.scheduleConfigId || updateDto.courseCode) {
-      await this.ensureDependencies(updateDto.scheduleConfigId, updateDto.courseCode);
+      await this.ensureDependencies(
+        updateDto.scheduleConfigId,
+        updateDto.courseCode,
+      );
     }
 
     return this.prismaService.configCourse.update({
@@ -79,11 +91,16 @@ export class ConfigCourseService {
     });
   }
 
-  private async ensureDependencies(scheduleConfigId?: number, courseCode?: number) {
+  private async ensureDependencies(
+    scheduleConfigId?: number,
+    courseCode?: number,
+  ) {
     if (scheduleConfigId) {
-      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique({
-        where: { scheduleConfigId: BigInt(scheduleConfigId) },
-      });
+      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique(
+        {
+          where: { scheduleConfigId: BigInt(scheduleConfigId) },
+        },
+      );
       if (!scheduleConfig || !scheduleConfig.active) {
         throw new NotFoundException(
           `ScheduleConfig with id ${scheduleConfigId} not found`,

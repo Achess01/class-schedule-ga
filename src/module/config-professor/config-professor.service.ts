@@ -8,7 +8,10 @@ export class ConfigProfessorService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createDto: CreateConfigProfessorDto, userId: number) {
-    await this.ensureDependencies(createDto.professorCode, createDto.scheduleConfigId);
+    await this.ensureDependencies(
+      createDto.professorCode,
+      createDto.scheduleConfigId,
+    );
 
     return this.prismaService.configProfessor.create({
       data: {
@@ -41,11 +44,18 @@ export class ConfigProfessorService {
     return entity;
   }
 
-  async update(configProfessorId: number, updateDto: UpdateConfigProfessorDto, userId: number) {
+  async update(
+    configProfessorId: number,
+    updateDto: UpdateConfigProfessorDto,
+    userId: number,
+  ) {
     await this.findOne(configProfessorId);
 
     if (updateDto.professorCode || updateDto.scheduleConfigId) {
-      await this.ensureDependencies(updateDto.professorCode, updateDto.scheduleConfigId);
+      await this.ensureDependencies(
+        updateDto.professorCode,
+        updateDto.scheduleConfigId,
+      );
     }
 
     return this.prismaService.configProfessor.update({
@@ -75,20 +85,27 @@ export class ConfigProfessorService {
     });
   }
 
-  private async ensureDependencies(professorCode?: number, scheduleConfigId?: number) {
+  private async ensureDependencies(
+    professorCode?: number,
+    scheduleConfigId?: number,
+  ) {
     if (professorCode) {
       const professor = await this.prismaService.professor.findUnique({
         where: { professorCode },
       });
       if (!professor || !professor.active) {
-        throw new NotFoundException(`Professor with code ${professorCode} not found`);
+        throw new NotFoundException(
+          `Professor with code ${professorCode} not found`,
+        );
       }
     }
 
     if (scheduleConfigId) {
-      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique({
-        where: { scheduleConfigId: BigInt(scheduleConfigId) },
-      });
+      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique(
+        {
+          where: { scheduleConfigId: BigInt(scheduleConfigId) },
+        },
+      );
       if (!scheduleConfig || !scheduleConfig.active) {
         throw new NotFoundException(
           `ScheduleConfig with id ${scheduleConfigId} not found`,

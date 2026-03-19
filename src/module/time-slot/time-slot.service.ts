@@ -36,7 +36,11 @@ export class TimeSlotService {
     return timeSlot;
   }
 
-  async update(timeSlotId: number, updateTimeSlotDto: UpdateTimeSlotDto, userId: number) {
+  async update(
+    timeSlotId: number,
+    updateTimeSlotDto: UpdateTimeSlotDto,
+    userId: number,
+  ) {
     await this.findOne(timeSlotId);
 
     return this.prismaService.timeSlot.update({

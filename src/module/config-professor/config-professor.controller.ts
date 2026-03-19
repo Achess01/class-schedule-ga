@@ -50,7 +50,10 @@ export class ConfigProfessorController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createDto: CreateConfigProfessorDto, @Req() req: Request) {
+  async create(
+    @Body() createDto: CreateConfigProfessorDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.service.create(createDto, payload.sub);
   }
@@ -88,7 +91,9 @@ export class ConfigProfessorController {
   })
   @ApiNotFoundResponse({ description: 'Config professor not found' })
   @Get(':configProfessorId')
-  async findOne(@Param('configProfessorId', ParseIntPipe) configProfessorId: number) {
+  async findOne(
+    @Param('configProfessorId', ParseIntPipe) configProfessorId: number,
+  ) {
     return this.service.findOne(configProfessorId);
   }
 
@@ -138,7 +143,10 @@ export class ConfigProfessorController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':configProfessorId')
-  async remove(@Param('configProfessorId', ParseIntPipe) configProfessorId: number, @Req() req: Request) {
+  async remove(
+    @Param('configProfessorId', ParseIntPipe) configProfessorId: number,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.service.remove(configProfessorId, payload.sub);
   }

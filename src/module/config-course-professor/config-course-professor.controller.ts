@@ -50,7 +50,10 @@ export class ConfigCourseProfessorController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createDto: CreateConfigCourseProfessorDto, @Req() req: Request) {
+  async create(
+    @Body() createDto: CreateConfigCourseProfessorDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.service.create(createDto, payload.sub);
   }

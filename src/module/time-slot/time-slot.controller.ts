@@ -50,7 +50,10 @@ export class TimeSlotController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createTimeSlotDto: CreateTimeSlotDto, @Req() req: Request) {
+  async create(
+    @Body() createTimeSlotDto: CreateTimeSlotDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.timeSlotService.create(createTimeSlotDto, payload.sub);
   }
@@ -118,7 +121,11 @@ export class TimeSlotController {
     @Req() req: Request,
   ) {
     const payload = req['user'] as JwtPayload;
-    return this.timeSlotService.update(timeSlotId, updateTimeSlotDto, payload.sub);
+    return this.timeSlotService.update(
+      timeSlotId,
+      updateTimeSlotDto,
+      payload.sub,
+    );
   }
 
   @ApiBearerAuth()
@@ -139,7 +146,10 @@ export class TimeSlotController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':timeSlotId')
-  async remove(@Param('timeSlotId', ParseIntPipe) timeSlotId: number, @Req() req: Request) {
+  async remove(
+    @Param('timeSlotId', ParseIntPipe) timeSlotId: number,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.timeSlotService.remove(timeSlotId, payload.sub);
   }

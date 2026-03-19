@@ -8,7 +8,10 @@ export class ConfigCourseProfessorService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createDto: CreateConfigCourseProfessorDto, userId: number) {
-    await this.ensureDependencies(createDto.configProfessorId, createDto.configCourseId);
+    await this.ensureDependencies(
+      createDto.configProfessorId,
+      createDto.configCourseId,
+    );
 
     return this.prismaService.configCourseProfessor.create({
       data: {
@@ -86,11 +89,15 @@ export class ConfigCourseProfessorService {
     });
   }
 
-  private async ensureDependencies(configProfessorId?: number, configCourseId?: number) {
+  private async ensureDependencies(
+    configProfessorId?: number,
+    configCourseId?: number,
+  ) {
     if (configProfessorId) {
-      const configProfessor = await this.prismaService.configProfessor.findUnique({
-        where: { configProfessorId: BigInt(configProfessorId) },
-      });
+      const configProfessor =
+        await this.prismaService.configProfessor.findUnique({
+          where: { configProfessorId: BigInt(configProfessorId) },
+        });
       if (!configProfessor || !configProfessor.active) {
         throw new NotFoundException(
           `ConfigProfessor with id ${configProfessorId} not found`,
@@ -103,7 +110,9 @@ export class ConfigCourseProfessorService {
         where: { configCourseId: BigInt(configCourseId) },
       });
       if (!configCourse || !configCourse.active) {
-        throw new NotFoundException(`ConfigCourse with id ${configCourseId} not found`);
+        throw new NotFoundException(
+          `ConfigCourse with id ${configCourseId} not found`,
+        );
       }
     }
   }

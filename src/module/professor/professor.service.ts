@@ -29,7 +29,9 @@ export class ProfessorService {
     });
 
     if (!professor || !professor.active) {
-      throw new NotFoundException(`Professor with code ${professorCode} not found`);
+      throw new NotFoundException(
+        `Professor with code ${professorCode} not found`,
+      );
     }
 
     return professor;

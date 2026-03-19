@@ -52,7 +52,10 @@ export class ProfessorController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createProfessorDto: CreateProfessorDto, @Req() req: Request) {
+  async create(
+    @Body() createProfessorDto: CreateProfessorDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.professorService.create(createProfessorDto, payload.sub);
   }
@@ -121,7 +124,11 @@ export class ProfessorController {
     @Req() req: Request,
   ) {
     const payload = req['user'] as JwtPayload;
-    return this.professorService.update(professorCode, updateProfessorDto, payload.sub);
+    return this.professorService.update(
+      professorCode,
+      updateProfessorDto,
+      payload.sub,
+    );
   }
 
   @ApiBearerAuth()
@@ -142,7 +149,10 @@ export class ProfessorController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':professorCode')
-  async remove(@Param('professorCode', ParseIntPipe) professorCode: number, @Req() req: Request) {
+  async remove(
+    @Param('professorCode', ParseIntPipe) professorCode: number,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.professorService.remove(professorCode, payload.sub);
   }

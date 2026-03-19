@@ -8,7 +8,10 @@ export class ConfigClassroomService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createDto: CreateConfigClassroomDto, userId: number) {
-    await this.ensureDependencies(createDto.classroomId, createDto.scheduleConfigId);
+    await this.ensureDependencies(
+      createDto.classroomId,
+      createDto.scheduleConfigId,
+    );
 
     return this.prismaService.configClassroom.create({
       data: {
@@ -41,7 +44,11 @@ export class ConfigClassroomService {
     return entity;
   }
 
-  async update(configClassroomId: number, updateDto: UpdateConfigClassroomDto, userId: number) {
+  async update(
+    configClassroomId: number,
+    updateDto: UpdateConfigClassroomDto,
+    userId: number,
+  ) {
     await this.findOne(configClassroomId);
 
     if (updateDto.classroomId || updateDto.scheduleConfigId) {
@@ -78,20 +85,27 @@ export class ConfigClassroomService {
     });
   }
 
-  private async ensureDependencies(classroomId?: number, scheduleConfigId?: number) {
+  private async ensureDependencies(
+    classroomId?: number,
+    scheduleConfigId?: number,
+  ) {
     if (classroomId) {
       const classroom = await this.prismaService.classroom.findUnique({
         where: { classroomId },
       });
       if (!classroom || !classroom.active) {
-        throw new NotFoundException(`Classroom with id ${classroomId} not found`);
+        throw new NotFoundException(
+          `Classroom with id ${classroomId} not found`,
+        );
       }
     }
 
     if (scheduleConfigId) {
-      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique({
-        where: { scheduleConfigId: BigInt(scheduleConfigId) },
-      });
+      const scheduleConfig = await this.prismaService.scheduleConfig.findUnique(
+        {
+          where: { scheduleConfigId: BigInt(scheduleConfigId) },
+        },
+      );
       if (!scheduleConfig || !scheduleConfig.active) {
         throw new NotFoundException(
           `ScheduleConfig with id ${scheduleConfigId} not found`,

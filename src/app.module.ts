@@ -14,6 +14,7 @@ import { ProfessorModule } from './module/professor/professor.module';
 import { ScheduleConfigModule } from './module/schedule-config/schedule-config.module';
 import { TimeSlotModule } from './module/time-slot/time-slot.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { GaModule } from './ga/ga.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ConfigProfessorModule,
     ConfigCourseProfessorModule,
     CourseCareerModule,
+    GaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

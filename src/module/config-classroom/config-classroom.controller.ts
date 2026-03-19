@@ -51,7 +51,10 @@ export class ConfigClassroomController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createDto: CreateConfigClassroomDto, @Req() req: Request) {
+  async create(
+    @Body() createDto: CreateConfigClassroomDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.service.create(createDto, payload.sub);
   }
@@ -89,7 +92,9 @@ export class ConfigClassroomController {
   })
   @ApiNotFoundResponse({ description: 'Config classroom not found' })
   @Get(':configClassroomId')
-  async findOne(@Param('configClassroomId', ParseIntPipe) configClassroomId: number) {
+  async findOne(
+    @Param('configClassroomId', ParseIntPipe) configClassroomId: number,
+  ) {
     return this.service.findOne(configClassroomId);
   }
 
@@ -139,7 +144,10 @@ export class ConfigClassroomController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':configClassroomId')
-  async remove(@Param('configClassroomId', ParseIntPipe) configClassroomId: number, @Req() req: Request) {
+  async remove(
+    @Param('configClassroomId', ParseIntPipe) configClassroomId: number,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.service.remove(configClassroomId, payload.sub);
   }

@@ -7,7 +7,10 @@ import { UpdateScheduleConfigDto } from './dto/update-schedule-config.dto';
 export class ScheduleConfigService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(createScheduleConfigDto: CreateScheduleConfigDto, userId: number) {
+  async create(
+    createScheduleConfigDto: CreateScheduleConfigDto,
+    userId: number,
+  ) {
     return this.prismaService.scheduleConfig.create({
       data: {
         ...createScheduleConfigDto,

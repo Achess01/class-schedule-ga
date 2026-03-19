@@ -57,7 +57,10 @@ export class ScheduleConfigController {
     @Req() req: Request,
   ) {
     const payload = req['user'] as JwtPayload;
-    return this.scheduleConfigService.create(createScheduleConfigDto, payload.sub);
+    return this.scheduleConfigService.create(
+      createScheduleConfigDto,
+      payload.sub,
+    );
   }
 
   @ApiOperation({ summary: 'Get all schedule configs' })

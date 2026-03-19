@@ -51,7 +51,10 @@ export class ClassroomController {
     description: 'Missing or invalid authorization token',
   })
   @Post()
-  async create(@Body() createClassroomDto: CreateClassroomDto, @Req() req: Request) {
+  async create(
+    @Body() createClassroomDto: CreateClassroomDto,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.classroomService.create(createClassroomDto, payload.sub);
   }
@@ -122,7 +125,11 @@ export class ClassroomController {
     @Req() req: Request,
   ) {
     const payload = req['user'] as JwtPayload;
-    return this.classroomService.update(classroomId, updateClassroomDto, payload.sub);
+    return this.classroomService.update(
+      classroomId,
+      updateClassroomDto,
+      payload.sub,
+    );
   }
 
   @ApiBearerAuth()
@@ -143,7 +150,10 @@ export class ClassroomController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':classroomId')
-  async remove(@Param('classroomId', ParseIntPipe) classroomId: number, @Req() req: Request) {
+  async remove(
+    @Param('classroomId', ParseIntPipe) classroomId: number,
+    @Req() req: Request,
+  ) {
     const payload = req['user'] as JwtPayload;
     return this.classroomService.remove(classroomId, payload.sub);
   }
