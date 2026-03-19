@@ -2,11 +2,18 @@ import type { AssignmentStatus } from './assignment-status';
 import type { DayIndex } from './day-type';
 import type { SessionType } from './session-type';
 
+export interface AcademicTarget {
+  careerCode: number;
+  semester: number;
+  isMandatory: boolean;
+}
+
 export interface Gene {
   geneId: string;
   scheduleConfigId: bigint;
   configCourseId: bigint;
   courseCode: number;
+  academicTargets: AcademicTarget[];
   careerCodes: number[];
   semester: number;
   isMandatory: boolean;
