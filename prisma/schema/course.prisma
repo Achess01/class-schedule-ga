@@ -2,6 +2,7 @@ model Course {
   courseCode      Int    @id
   name            String
   semester        Int?
+  isCommonArea    Boolean @default(false) @map("is_common_area")
   isMandatory     Boolean
   hasLab          Boolean
   numberOfPeriods Int

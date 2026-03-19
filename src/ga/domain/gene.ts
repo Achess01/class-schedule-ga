@@ -7,6 +7,10 @@ export interface Gene {
   scheduleConfigId: bigint;
   configCourseId: bigint;
   courseCode: number;
+  careerCodes: number[];
+  semester: number;
+  isMandatory: boolean;
+  isCommonArea: boolean;
   sectionIndex: 1 | 2;
   sessionType: SessionType;
   dayIndex: DayIndex;

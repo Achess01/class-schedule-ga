@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -8,8 +12,11 @@ export class CourseService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createCourseDto: CreateCourseDto, userId: number) {
+    this.validateCommonAreaRules(createCourseDto);
+
     return this.prismaService.course.create({
       data: {
+        isCommonArea: false,
         ...createCourseDto,
         createdBy: String(userId),
       },
@@ -40,7 +47,11 @@ export class CourseService {
     updateCourseDto: UpdateCourseDto,
     userId: number,
   ) {
-    await this.findOne(courseCode);
+    const currentCourse = await this.findOne(courseCode);
+    this.validateCommonAreaRules({
+      ...currentCourse,
+      ...updateCourseDto,
+    });
 
     return this.prismaService.course.update({
       where: { courseCode },
@@ -61,5 +72,19 @@ export class CourseService {
         updatedBy: String(userId),
       },
     });
+  }
+
+  private validateCommonAreaRules(data: {
+    isCommonArea?: boolean;
+    semester?: number | null;
+  }) {
+    if (
+      data.isCommonArea &&
+      (data.semester === null || data.semester === undefined)
+    ) {
+      throw new BadRequestException(
+        'Common area courses must include a semester',
+      );
+    }
   }
 }

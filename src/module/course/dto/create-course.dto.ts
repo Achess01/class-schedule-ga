@@ -25,6 +25,11 @@ export class CreateCourseDto {
   @Min(1)
   semester?: number;
 
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  isCommonArea?: boolean;
+
   @ApiProperty({ example: true })
   @IsBoolean()
   isMandatory: boolean;
