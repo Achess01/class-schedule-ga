@@ -41,6 +41,7 @@ interface ValidationError {
 @Catch()
 export class ProblemDetailFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
+    console.error(exception);
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();

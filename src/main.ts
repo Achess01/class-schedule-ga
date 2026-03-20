@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ProblemDetailFilter } from './common/errors/problem-detail.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { BigIntSerializerInterceptor } from './common/interceptors/bigint-serializer.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,6 +18,7 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, documentFactory);
 
   app.useGlobalFilters(new ProblemDetailFilter());
+  app.useGlobalInterceptors(new BigIntSerializerInterceptor());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

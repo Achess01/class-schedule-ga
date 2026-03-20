@@ -53,6 +53,7 @@ export class GaController {
   async generate(
     @Param('scheduleConfigId', ParseIntPipe) scheduleConfigId: number,
   ) {
-    return this.gaService.generate(scheduleConfigId);
+    const result = await this.gaService.generate(scheduleConfigId);
+    return result;
   }
 }
