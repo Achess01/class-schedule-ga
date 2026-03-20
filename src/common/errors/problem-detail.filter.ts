@@ -106,6 +106,8 @@ export class ProblemDetailFilter implements ExceptionFilter {
         }
       }
       return STATUS_TITLES[status] ?? 'An error occurred';
+    } else if (exception instanceof Error) {
+      return exception.message;
     }
     return 'An unexpected error occurred';
   }
