@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import type { IUserRepository } from '../user/interfaces/user-repository.interface';
+import type {
+  IUserRepository,
+  User,
+} from '../user/interfaces/user-repository.interface';
 import { USER_REPOSITORY } from '../user/interfaces/user-repository.interface';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -42,7 +45,21 @@ export class AuthService {
     return { access_token: await this.jwtService.signAsync(payload) };
   }
 
-  async login(dto: LoginDto): Promise<{ access_token: string }> {
+  async login(dto: LoginDto): Promise<{
+    access_token: string;
+    user: {
+      id: number;
+      email: string;
+      createdAt: Date;
+      firstname: string;
+      lastname: string;
+      role: {
+        id: number;
+        name: string;
+        description: string;
+      };
+    };
+  }> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -54,7 +71,21 @@ export class AuthService {
     }
 
     const payload: JwtPayload = { sub: user.id, email: user.email };
-    return { access_token: await this.jwtService.signAsync(payload) };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+        firstname: user.email,
+        lastname: '',
+        role: {
+          id: 1,
+          name: 'ADMIN',
+          description: '',
+        },
+      },
+    };
   }
 
   async validateUser(payload: JwtPayload) {
