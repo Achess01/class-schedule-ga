@@ -19,12 +19,13 @@ export class CareerService {
   async findAll() {
     return this.prismaService.career.findMany({
       orderBy: { careerCode: 'asc' },
+      where: { active: true },
     });
   }
 
   async findOne(careerCode: number) {
     const career = await this.prismaService.career.findUnique({
-      where: { careerCode },
+      where: { careerCode, active: true },
     });
 
     if (!career) {
@@ -42,7 +43,7 @@ export class CareerService {
     await this.findOne(careerCode);
 
     return this.prismaService.career.update({
-      where: { careerCode },
+      where: { careerCode, active: true },
       data: {
         ...updateCareerDto,
         updatedBy: String(userId),
@@ -54,7 +55,7 @@ export class CareerService {
     await this.findOne(careerCode);
 
     return this.prismaService.career.update({
-      where: { careerCode },
+      where: { careerCode, active: true },
       data: {
         active: false,
         updatedBy: String(userId),

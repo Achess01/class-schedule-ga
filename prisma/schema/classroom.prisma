@@ -1,8 +1,9 @@
 model Classroom {
-  classroomId Int @id
+  classroomId Int @id @default(autoincrement())
   name        String
   capacity    Int
-  type        String
+  typeOfSchedule        String
+  classTypeId Int
 
   configClassrooms ConfigClassroom[]
 

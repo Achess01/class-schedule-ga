@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProfessorDto } from './dto/create-professor.dto';
 import { UpdateProfessorDto } from './dto/update-professor.dto';
@@ -8,12 +12,40 @@ export class ProfessorService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createProfessorDto: CreateProfessorDto, userId: number) {
-    return this.prismaService.professor.create({
+    const existProfessor = await this.prismaService.professor.findUnique({
+      where: { professorCode: createProfessorDto.professorCode },
+    });
+    if (existProfessor && existProfessor.active === false) {
+      const updated = await this.prismaService.professor.update({
+        where: { professorCode: createProfessorDto.professorCode },
+        data: {
+          ...createProfessorDto,
+          active: true,
+          updatedBy: String(userId),
+        },
+      });
+      return {
+        data: updated,
+        message: 'Professor reactivated successfully',
+      };
+    }
+
+    if (existProfessor) {
+      throw new BadRequestException({
+        message: 'Professor already exists',
+        code: 'PROFESSOR_EXISTS',
+      });
+    }
+    const professor = await this.prismaService.professor.create({
       data: {
         ...createProfessorDto,
         createdBy: String(userId),
       },
     });
+    return {
+      data: professor,
+      message: 'Professor created successfully',
+    };
   }
 
   async findAll() {

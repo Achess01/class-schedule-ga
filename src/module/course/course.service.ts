@@ -12,15 +12,41 @@ export class CourseService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createCourseDto: CreateCourseDto, userId: number) {
-    this.validateCommonAreaRules(createCourseDto);
-
-    return this.prismaService.course.create({
+    const courseExiste = await this.prismaService.course.findUnique({
+      where: { courseCode: createCourseDto.courseCode },
+    });
+    if (courseExiste && courseExiste.active === false) {
+      const updated = await this.prismaService.course.update({
+        where: { courseCode: createCourseDto.courseCode },
+        data: {
+          ...createCourseDto,
+          active: true,
+          updatedBy: String(userId),
+        },
+      });
+      return {
+        data: updated,
+        message: 'Course reactivated successfully',
+      };
+    }
+    if (courseExiste) {
+      throw new BadRequestException({
+        message: 'Course already exists',
+        code: 'COURSE_EXISTS',
+      });
+    }
+    const course = await this.prismaService.course.create({
       data: {
         isCommonArea: false,
         ...createCourseDto,
         createdBy: String(userId),
       },
     });
+
+    return {
+      data: course,
+      message: 'Course created successfully',
+    };
   }
 
   async findAll() {
@@ -29,7 +55,6 @@ export class CourseService {
       orderBy: { courseCode: 'asc' },
     });
   }
-
   async findOne(courseCode: number) {
     const course = await this.prismaService.course.findUnique({
       where: { courseCode },
@@ -48,6 +73,7 @@ export class CourseService {
     userId: number,
   ) {
     const currentCourse = await this.findOne(courseCode);
+    this.validateCourseCodeImmutable(courseCode, updateCourseDto);
     this.validateCommonAreaRules({
       ...currentCourse,
       ...updateCourseDto,
@@ -85,6 +111,28 @@ export class CourseService {
       throw new BadRequestException(
         'Common area courses must include a semester',
       );
+    }
+  }
+
+  private async validateUniqueCourseCode(courseCode: number) {
+    const existingCourse = await this.prismaService.course.findUnique({
+      where: { courseCode },
+    });
+
+    if (existingCourse) {
+      throw new BadRequestException(`Course code ${courseCode} already exists`);
+    }
+  }
+
+  private validateCourseCodeImmutable(
+    courseCode: number,
+    updateCourseDto: UpdateCourseDto,
+  ) {
+    if (
+      updateCourseDto.courseCode !== undefined &&
+      updateCourseDto.courseCode !== courseCode
+    ) {
+      throw new BadRequestException('Course code cannot be modified');
     }
   }
 }
