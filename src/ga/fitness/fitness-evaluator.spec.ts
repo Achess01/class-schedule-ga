@@ -23,6 +23,7 @@ function createGene(overrides: Partial<Gene> = {}): Gene {
     scheduleConfigId: 1n,
     configCourseId: 10n,
     courseCode: 1201,
+    academicTargets: [{ careerCode: 1, semester: 4, isMandatory: true }],
     careerCodes: [1],
     semester: 4,
     isMandatory: true,
@@ -35,6 +36,10 @@ function createGene(overrides: Partial<Gene> = {}): Gene {
     requireClassroom: true,
     configClassroomId: 100n,
     configProfessorId: 200n,
+    professorEntryMinute: 420,
+    professorExitMinute: 1080,
+    fixedDayIndex: undefined,
+    fixedStartSlot: undefined,
     assignmentStatus: AssignmentStatus.ASSIGNED,
     isFixed: false,
     ...overrides,
@@ -157,5 +162,34 @@ describe('evaluateChromosome', () => {
     expect(result.violations).toContain(ViolationCode.UNASSIGNED_CLASSROOM);
     expect(result.metrics.unassignedClassroomCount).toBe(1);
     expect(result.feasibilityPenalty).toBeGreaterThan(0);
+  });
+
+  it('penalizes invalid fixed assignment', () => {
+    const catalog = createCatalog();
+    const gene = createGene({
+      isFixed: true,
+      fixedDayIndex: CLASS_DAY_INDEX,
+      fixedStartSlot: 3,
+      dayIndex: CLASS_DAY_INDEX,
+      startSlot: 2,
+    });
+
+    const result = evaluateChromosome(createChromosome([gene]), catalog);
+
+    expect(result.violations).toContain(ViolationCode.INVALID_FIXED_ASSIGNMENT);
+  });
+
+  it('penalizes professor unavailability', () => {
+    const catalog = createCatalog();
+    const gene = createGene({
+      startSlot: 0,
+      periodCount: 1,
+      professorEntryMinute: 500,
+      professorExitMinute: 1080,
+    });
+
+    const result = evaluateChromosome(createChromosome([gene]), catalog);
+
+    expect(result.violations).toContain(ViolationCode.PROFESSOR_UNAVAILABLE);
   });
 });

@@ -6,6 +6,9 @@ model ConfigCourse {
   scheduleTime      DateTime
   requireClassroom  Boolean
   typeOfSchedule    String
+  isFixed           Boolean @default(false)
+  fixedDayIndex     Int?
+  fixedStartSlot    Int?
   configClassroomId BigInt?
 
   scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])

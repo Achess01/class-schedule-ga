@@ -3,6 +3,7 @@ model ConfigClassroom {
   classroomId       Int
   scheduleConfigId  BigInt
   typeOfSchedule    String
+  classroomType     ClassroomType
 
   classroom      Classroom      @relation(fields: [classroomId], references: [classroomId])
   scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])

@@ -72,6 +72,17 @@ export function evaluateChromosome(
       violations.add(ViolationCode.INVALID_CLASS_LAB_DAY_BLOCK);
     }
 
+    if (
+      gene.isFixed &&
+      (gene.fixedDayIndex === undefined ||
+        gene.fixedStartSlot === undefined ||
+        gene.dayIndex !== gene.fixedDayIndex ||
+        gene.startSlot !== gene.fixedStartSlot)
+    ) {
+      hardPenalty += weights.hard;
+      violations.add(ViolationCode.INVALID_FIXED_ASSIGNMENT);
+    }
+
     if (gene.assignmentStatus === AssignmentStatus.ASSIGNED) {
       assignedGeneCount += 1;
     }
@@ -101,6 +112,17 @@ export function evaluateChromosome(
     const occupiedSlots = buildOccupiedSlots(gene.startSlot, gene.periodCount);
     for (const slotIndex of occupiedSlots) {
       const slotKey = `${gene.dayIndex}:${slotIndex}`;
+      const slot = slotCatalog.byDay[gene.dayIndex][slotIndex];
+      if (
+        slot &&
+        gene.professorEntryMinute !== undefined &&
+        gene.professorExitMinute !== undefined &&
+        (slot.startMinuteOfDay < gene.professorEntryMinute ||
+          slot.endMinuteOfDay > gene.professorExitMinute)
+      ) {
+        hardPenalty += weights.hard;
+        violations.add(ViolationCode.PROFESSOR_UNAVAILABLE);
+      }
 
       const sectionKey = `${gene.configCourseId.toString()}:${gene.sectionIndex}`;
       const sectionValues = sectionOccupancy.get(slotKey) ?? [];

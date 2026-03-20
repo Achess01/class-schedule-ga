@@ -1,12 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsDateString,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Min,
-} from 'class-validator';
+import { IsDateString, IsInt, IsOptional, Min } from 'class-validator';
 
 export class CreateScheduleConfigDto {
   @ApiProperty({ example: 1 })
@@ -41,11 +34,11 @@ export class CreateScheduleConfigDto {
   @Min(1)
   maxGeneration?: number;
 
-  @ApiPropertyOptional({ example: '100' })
+  @ApiPropertyOptional({ example: 100 })
   @IsOptional()
-  @IsString()
-  @Matches(/^\d+$/)
-  startPopulationNumber?: string;
+  @IsInt()
+  @Min(2)
+  startPopulationSize?: number;
 
   @ApiProperty({ example: 1 })
   @IsInt()

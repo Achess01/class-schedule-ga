@@ -58,6 +58,11 @@ function reassignMutation(
   target.startSlot = randomStartSlot(slotsPerDay, target.periodCount);
 
   target.configProfessorId = pickRandom(options.professorCandidates);
+  const availability = target.configProfessorId
+    ? options.professorAvailability.get(target.configProfessorId)
+    : undefined;
+  target.professorEntryMinute = availability?.entryMinute;
+  target.professorExitMinute = availability?.exitMinute;
   target.configClassroomId = target.requireClassroom
     ? pickRandom(options.classroomCandidates)
     : undefined;
@@ -129,6 +134,11 @@ function normalizeGene(
   if (gene.configProfessorId === undefined) {
     gene.configProfessorId = pickRandom(options.professorCandidates);
   }
+  const availability = gene.configProfessorId
+    ? options.professorAvailability.get(gene.configProfessorId)
+    : undefined;
+  gene.professorEntryMinute = availability?.entryMinute;
+  gene.professorExitMinute = availability?.exitMinute;
   gene.assignmentStatus = computeStatus(
     gene.requireClassroom,
     gene.configProfessorId,

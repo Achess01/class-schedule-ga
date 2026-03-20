@@ -26,6 +26,10 @@ export interface Gene {
   requireClassroom: boolean;
   configClassroomId?: bigint;
   configProfessorId?: bigint;
+  professorEntryMinute?: number;
+  professorExitMinute?: number;
+  fixedDayIndex?: DayIndex;
+  fixedStartSlot?: number;
   assignmentStatus: AssignmentStatus;
   isFixed: boolean;
 }

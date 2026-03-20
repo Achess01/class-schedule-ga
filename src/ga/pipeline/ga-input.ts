@@ -5,6 +5,7 @@ import {
   LAB1_DAY_INDEX,
   LAB2_DAY_INDEX,
   type DayIndex,
+  isDayIndex,
 } from '../domain/day-type';
 import type { AcademicTarget, Gene } from '../domain/gene';
 import { SessionType } from '../domain/session-type';
@@ -17,6 +18,10 @@ export interface GeneAssignmentOptions {
   defaultClassroomId?: bigint;
   professorCandidates: bigint[];
   classroomCandidates: bigint[];
+  professorAvailability: Map<
+    bigint,
+    { entryMinute: number; exitMinute: number }
+  >;
 }
 
 export interface GaInputContext {
@@ -52,6 +57,9 @@ export async function buildGaInput(
       },
       configProfessors: {
         where: { active: true },
+        include: {
+          professor: true,
+        },
       },
       configClassrooms: {
         where: { active: true },
@@ -94,6 +102,18 @@ export async function buildGaInput(
     .filter((configProfessor) => configProfessor.active)
     .map((configProfessor) => configProfessor.configProfessorId);
 
+  const professorAvailability = new Map(
+    scheduleConfig.configProfessors
+      .filter((configProfessor) => configProfessor.active)
+      .map((configProfessor) => [
+        configProfessor.configProfessorId,
+        {
+          entryMinute: toMinuteOfDay(configProfessor.professor.entryTime),
+          exitMinute: toMinuteOfDay(configProfessor.professor.exitTime),
+        },
+      ]),
+  );
+
   const classroomPoolById = new Map(
     scheduleConfig.configClassrooms
       .filter((configClassroom) => configClassroom.active)
@@ -133,12 +153,28 @@ export async function buildGaInput(
       specificProfessorByCourse.get(configCourse.configCourseId) ??
       professorPoolIds;
 
-    const classroomCandidates = getCompatibleClassroomIds(
+    const classClassroomCandidates = getCompatibleClassroomIds(
       scheduleConfig.configClassrooms,
       configCourse.typeOfSchedule,
+      SessionType.CLASS,
+    );
+
+    const labClassroomCandidates = getCompatibleClassroomIds(
+      scheduleConfig.configClassrooms,
+      configCourse.typeOfSchedule,
+      SessionType.LAB,
     );
 
     for (let sectionIndex = 1; sectionIndex <= sectionQty; sectionIndex += 1) {
+      const selectedProfessorId = professorCandidates[0];
+      const selectedProfessorAvailability = selectedProfessorId
+        ? professorAvailability.get(selectedProfessorId)
+        : undefined;
+      const fixedDayIndex =
+        configCourse.isFixed && configCourse.fixedDayIndex !== null
+          ? toDayIndex(configCourse.fixedDayIndex)
+          : undefined;
+
       const classGene: Gene = {
         geneId: createGeneId(
           configCourse.configCourseId,
@@ -155,18 +191,28 @@ export async function buildGaInput(
         isCommonArea: course.isCommonArea,
         sectionIndex: sectionIndex as 1 | 2,
         sessionType: SessionType.CLASS,
-        dayIndex: CLASS_DAY_INDEX,
-        startSlot: 0,
+        dayIndex: fixedDayIndex ?? CLASS_DAY_INDEX,
+        startSlot:
+          configCourse.isFixed && configCourse.fixedStartSlot !== null
+            ? configCourse.fixedStartSlot
+            : 0,
         periodCount: Math.max(1, course.numberOfPeriods),
         requireClassroom: configCourse.requireClassroom,
         configClassroomId: configCourse.configClassroomId ?? undefined,
-        configProfessorId: professorCandidates[0],
+        configProfessorId: selectedProfessorId,
+        professorEntryMinute: selectedProfessorAvailability?.entryMinute,
+        professorExitMinute: selectedProfessorAvailability?.exitMinute,
+        fixedDayIndex,
+        fixedStartSlot:
+          configCourse.isFixed && configCourse.fixedStartSlot !== null
+            ? configCourse.fixedStartSlot
+            : undefined,
         assignmentStatus: computeAssignmentStatus(
           configCourse.requireClassroom,
-          professorCandidates[0],
+          selectedProfessorId,
           configCourse.configClassroomId ?? undefined,
         ),
-        isFixed: false,
+        isFixed: configCourse.isFixed,
       };
 
       initialGenes.push(classGene);
@@ -175,7 +221,8 @@ export async function buildGaInput(
         requireClassroom: configCourse.requireClassroom,
         defaultClassroomId: configCourse.configClassroomId ?? undefined,
         professorCandidates,
-        classroomCandidates,
+        classroomCandidates: classClassroomCandidates,
+        professorAvailability,
       });
 
       if (course.hasLab) {
@@ -189,6 +236,9 @@ export async function buildGaInput(
           sessionType: SessionType.LAB,
           dayIndex: randomLabDayIndex(),
           periodCount: 3,
+          isFixed: false,
+          fixedDayIndex: undefined,
+          fixedStartSlot: undefined,
         };
         initialGenes.push(labGene);
         geneOptionsByKey.set(getGeneOptionKey(labGene), {
@@ -196,7 +246,8 @@ export async function buildGaInput(
           requireClassroom: configCourse.requireClassroom,
           defaultClassroomId: configCourse.configClassroomId ?? undefined,
           professorCandidates,
-          classroomCandidates,
+          classroomCandidates: labClassroomCandidates,
+          professorAvailability,
         });
       }
     }
@@ -228,7 +279,7 @@ export async function buildGaInput(
     crossMethod: scheduleConfig.crossMethod,
     mutationMethod: scheduleConfig.mutationMethod,
     maxGeneration: scheduleConfig.maxGeneration ?? 100,
-    populationSize: parsePopulationSize(scheduleConfig.startPopulationNumber),
+    populationSize: parsePopulationSize(scheduleConfig.startPopulationSize),
     initialGenes,
     geneOptionsByKey,
   };
@@ -240,15 +291,14 @@ export function getGeneOptionKey(
   return `${gene.configCourseId.toString()}:${gene.sectionIndex}:${gene.sessionType}`;
 }
 
-function parsePopulationSize(value: string | null): number {
-  if (!value) {
+function parsePopulationSize(value: number | null): number {
+  if (value === null || value === undefined) {
     return 40;
   }
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed <= 1) {
+  if (value <= 1) {
     return 40;
   }
-  return Math.min(parsed, 500);
+  return Math.min(value, 500);
 }
 
 function computeAssignmentStatus(
@@ -275,29 +325,47 @@ function getCompatibleClassroomIds(
   configClassrooms: Array<{
     configClassroomId: bigint;
     typeOfSchedule: string;
+    classroomType: 'CLASS' | 'LAB' | 'BOTH';
     active: boolean;
   }>,
   courseTypeOfSchedule: string,
+  sessionType: SessionType,
 ): bigint[] {
   return configClassrooms
     .filter((classroom) => classroom.active)
     .filter((classroom) =>
       isScheduleTypeCompatible(courseTypeOfSchedule, classroom.typeOfSchedule),
     )
+    .filter((classroom) =>
+      isClassroomTypeCompatible(classroom.classroomType, sessionType),
+    )
     .map((classroom) => classroom.configClassroomId);
 }
 
 function isScheduleTypeCompatible(
   courseType: string,
-  classroomType: string,
+  classroomScheduleType: string,
 ): boolean {
   const normalizedCourse = courseType.toUpperCase();
-  const normalizedClassroom = classroomType.toUpperCase();
+  const normalizedClassroom = classroomScheduleType.toUpperCase();
 
   if (normalizedCourse === 'BOTH' || normalizedClassroom === 'BOTH') {
     return true;
   }
   return normalizedCourse === normalizedClassroom;
+}
+
+function isClassroomTypeCompatible(
+  classroomType: 'CLASS' | 'LAB' | 'BOTH',
+  sessionType: SessionType,
+): boolean {
+  if (classroomType === 'BOTH') {
+    return true;
+  }
+  if (sessionType === SessionType.LAB) {
+    return classroomType === 'LAB';
+  }
+  return classroomType === 'CLASS';
 }
 
 function toAcademicTargets(
@@ -320,6 +388,17 @@ function uniqueNumbers(values: number[]): number[] {
 
 function randomLabDayIndex(): DayIndex {
   return Math.random() < 0.5 ? LAB1_DAY_INDEX : LAB2_DAY_INDEX;
+}
+
+function toMinuteOfDay(value: Date): number {
+  return value.getUTCHours() * 60 + value.getUTCMinutes();
+}
+
+function toDayIndex(value: number): DayIndex {
+  if (!isDayIndex(value)) {
+    return CLASS_DAY_INDEX;
+  }
+  return value;
 }
 
 function createGeneId(

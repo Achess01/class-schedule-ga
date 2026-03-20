@@ -5,6 +5,11 @@ jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaServiceMock {},
 }));
 
+const asGaServiceDependency = <T>(
+  value: T,
+): ConstructorParameters<typeof GaService>[0] =>
+  value as unknown as ConstructorParameters<typeof GaService>[0];
+
 describe('GaService integration schedule generation', () => {
   it('generates a schedule directly from service using mocked config data', async () => {
     const prismaMock = {
@@ -17,28 +22,56 @@ describe('GaService integration schedule generation', () => {
           afternoonStartTime: new Date('2026-03-19T13:00:00.000Z'),
           afternoonEndTime: new Date('2026-03-19T17:00:00.000Z'),
           maxGeneration: 100,
-          startPopulationNumber: '25',
+          startPopulationSize: 25,
           selectionMethod: 1,
           crossMethod: 2,
           mutationMethod: 1,
           active: true,
           configProfessors: [
-            { configProfessorId: 101n, active: true },
-            { configProfessorId: 102n, active: true },
-            { configProfessorId: 103n, active: true },
+            {
+              configProfessorId: 101n,
+              active: true,
+              professor: {
+                entryTime: new Date('2026-03-19T07:00:00.000Z'),
+                exitTime: new Date('2026-03-19T17:00:00.000Z'),
+              },
+            },
+            {
+              configProfessorId: 102n,
+              active: true,
+              professor: {
+                entryTime: new Date('2026-03-19T07:00:00.000Z'),
+                exitTime: new Date('2026-03-19T17:00:00.000Z'),
+              },
+            },
+            {
+              configProfessorId: 103n,
+              active: true,
+              professor: {
+                entryTime: new Date('2026-03-19T07:00:00.000Z'),
+                exitTime: new Date('2026-03-19T17:00:00.000Z'),
+              },
+            },
           ],
           configClassrooms: [
             {
               configClassroomId: 201n,
               typeOfSchedule: 'MORNING',
+              classroomType: 'CLASS',
               active: true,
             },
             {
               configClassroomId: 202n,
               typeOfSchedule: 'AFTERNOON',
+              classroomType: 'LAB',
               active: true,
             },
-            { configClassroomId: 203n, typeOfSchedule: 'BOTH', active: true },
+            {
+              configClassroomId: 203n,
+              typeOfSchedule: 'BOTH',
+              classroomType: 'BOTH',
+              active: true,
+            },
           ],
           configCourses: [
             {
@@ -49,6 +82,9 @@ describe('GaService integration schedule generation', () => {
               scheduleTime: new Date('2026-03-19T07:00:00.000Z'),
               requireClassroom: true,
               typeOfSchedule: 'MORNING',
+              isFixed: false,
+              fixedDayIndex: null,
+              fixedStartSlot: null,
               configClassroomId: null,
               active: true,
               course: {
@@ -76,6 +112,9 @@ describe('GaService integration schedule generation', () => {
               scheduleTime: new Date('2026-03-19T09:00:00.000Z'),
               requireClassroom: true,
               typeOfSchedule: 'BOTH',
+              isFixed: false,
+              fixedDayIndex: null,
+              fixedStartSlot: null,
               configClassroomId: null,
               active: true,
               course: {
@@ -120,11 +159,10 @@ describe('GaService integration schedule generation', () => {
           },
         ]),
       },
-    } as unknown as ConstructorParameters<typeof GaService>[0];
+    };
 
-    const service = new GaService(prismaMock);
+    const service = new GaService(asGaServiceDependency(prismaMock));
     const result = await service.generate(1);
-    console.log(result);
 
     expect(result.scheduleConfigId).toBe(1n);
     expect(result.genes.length).toBeGreaterThan(0);

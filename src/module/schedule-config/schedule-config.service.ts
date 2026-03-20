@@ -13,8 +13,17 @@ export class ScheduleConfigService {
   ) {
     return this.prismaService.scheduleConfig.create({
       data: {
-        ...createScheduleConfigDto,
         scheduleConfigId: BigInt(createScheduleConfigDto.scheduleConfigId),
+        periodDurationM: createScheduleConfigDto.periodDurationM,
+        morningStartTime: createScheduleConfigDto.morningStartTime,
+        morningEndTime: createScheduleConfigDto.morningEndTime,
+        afternoonStartTime: createScheduleConfigDto.afternoonStartTime,
+        afternoonEndTime: createScheduleConfigDto.afternoonEndTime,
+        maxGeneration: createScheduleConfigDto.maxGeneration,
+        startPopulationSize: createScheduleConfigDto.startPopulationSize,
+        selectionMethod: createScheduleConfigDto.selectionMethod,
+        crossMethod: createScheduleConfigDto.crossMethod,
+        mutationMethod: createScheduleConfigDto.mutationMethod,
         createdBy: String(userId),
       },
     });
@@ -51,7 +60,17 @@ export class ScheduleConfigService {
     return this.prismaService.scheduleConfig.update({
       where: { scheduleConfigId: BigInt(scheduleConfigId) },
       data: {
-        ...updateScheduleConfigDto,
+        periodDurationM: updateScheduleConfigDto.periodDurationM,
+        morningStartTime: updateScheduleConfigDto.morningStartTime,
+        morningEndTime: updateScheduleConfigDto.morningEndTime,
+        afternoonStartTime: updateScheduleConfigDto.afternoonStartTime,
+        afternoonEndTime: updateScheduleConfigDto.afternoonEndTime,
+        maxGeneration: updateScheduleConfigDto.maxGeneration,
+        startPopulationSize: updateScheduleConfigDto.startPopulationSize,
+        selectionMethod: updateScheduleConfigDto.selectionMethod,
+        crossMethod: updateScheduleConfigDto.crossMethod,
+        mutationMethod: updateScheduleConfigDto.mutationMethod,
+        active: updateScheduleConfigDto.active,
         updatedBy: String(userId),
       },
     });

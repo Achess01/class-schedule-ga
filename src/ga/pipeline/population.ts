@@ -4,7 +4,7 @@ import { evaluateChromosome } from '../fitness/fitness-evaluator';
 import type { GaInputContext } from './ga-input';
 import { mutate } from '../operators/mutation';
 
-export function   initializePopulation(input: GaInputContext): Chromosome[] {
+export function initializePopulation(input: GaInputContext): Chromosome[] {
   const population: Chromosome[] = [];
 
   for (let i = 0; i < input.populationSize; i += 1) {

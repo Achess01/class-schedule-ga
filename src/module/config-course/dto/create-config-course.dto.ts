@@ -5,6 +5,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -37,6 +38,24 @@ export class CreateConfigCourseDto {
   @ApiProperty({ example: true })
   @IsBoolean()
   requireClassroom: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  isFixed?: boolean;
+
+  @ApiPropertyOptional({ example: 0, description: '0=CLASS, 1=LAB1, 2=LAB2' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2)
+  fixedDayIndex?: number;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  fixedStartSlot?: number;
 
   @ApiProperty({ example: 'MORNING' })
   @IsString()

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsString, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateConfigClassroomDto {
   @ApiProperty({ example: 1 })
@@ -21,4 +21,9 @@ export class CreateConfigClassroomDto {
   @IsString()
   @MaxLength(255)
   typeOfSchedule: string;
+
+  @ApiProperty({ example: 'CLASS', enum: ['CLASS', 'LAB', 'BOTH'] })
+  @IsString()
+  @IsIn(['CLASS', 'LAB', 'BOTH'])
+  classroomType: 'CLASS' | 'LAB' | 'BOTH';
 }
