@@ -17,6 +17,7 @@ model ScheduleConfig {
   configCourses    ConfigCourse[]
   configProfessors ConfigProfessor[]
   configClassrooms ConfigClassroom[]
+  generatedSchedules GeneratedSchedule[]
 
   createdAt DateTime @default(now())
   createdBy String?

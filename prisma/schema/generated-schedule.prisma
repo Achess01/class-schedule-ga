@@ -1,0 +1,55 @@
+model GeneratedSchedule {
+  generatedScheduleId       BigInt @id @default(autoincrement())
+  scheduleConfigId          BigInt
+  name                      String?
+  status                    String  @default("DRAFT")
+  fitness                   Float
+  hardPenalty               Int
+  softPenalty               Int
+  feasibilityPenalty        Int
+  requiredGeneCount         Int
+  assignedGeneCount         Int
+  unassignedClassroomCount  Int
+  unassignedProfessorCount  Int
+
+  scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])
+  items          GeneratedScheduleItem[]
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}
+
+model GeneratedScheduleItem {
+  generatedScheduleItemId BigInt @id @default(autoincrement())
+  generatedScheduleId     BigInt
+  configCourseId          BigInt
+  courseCode              Int
+  sectionIndex            Int
+  sessionType             String
+  dayIndex                Int
+  startSlot               Int
+  periodCount             Int
+  requireClassroom        Boolean
+  configClassroomId       BigInt?
+  configProfessorId       BigInt?
+  assignmentStatus        String
+  isFixed                 Boolean
+  semester                Int
+  isMandatory             Boolean
+  isCommonArea            Boolean
+  careerCodes             Int[]
+
+  generatedSchedule GeneratedSchedule @relation(fields: [generatedScheduleId], references: [generatedScheduleId])
+  configCourse      ConfigCourse      @relation(fields: [configCourseId], references: [configCourseId])
+  configClassroom   ConfigClassroom?  @relation(fields: [configClassroomId], references: [configClassroomId])
+  configProfessor   ConfigProfessor?  @relation(fields: [configProfessorId], references: [configProfessorId])
+
+  createdAt DateTime @default(now())
+  createdBy String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  active    Boolean  @default(true)
+}

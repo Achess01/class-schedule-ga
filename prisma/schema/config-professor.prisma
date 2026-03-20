@@ -7,6 +7,7 @@ model ConfigProfessor {
   scheduleConfig ScheduleConfig @relation(fields: [scheduleConfigId], references: [scheduleConfigId])
 
   courseProfessors ConfigCourseProfessor[]
+  generatedScheduleItems GeneratedScheduleItem[]
 
   createdAt DateTime @default(now())
   createdBy String?

@@ -1,14 +1,21 @@
 import { SessionType } from './domain/session-type';
 import { GaService } from './ga.service';
+import { GeneratedScheduleService } from '../module/generated-schedule/generated-schedule.service';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaServiceMock {},
 }));
 
-const asGaServiceDependency = <T>(
+const asPrismaDependency = <T>(
   value: T,
 ): ConstructorParameters<typeof GaService>[0] =>
   value as unknown as ConstructorParameters<typeof GaService>[0];
+
+const generatedScheduleServiceMock = {
+  createFromChromosome: jest
+    .fn()
+    .mockResolvedValue({ generatedScheduleId: 1n }),
+} as unknown as GeneratedScheduleService;
 
 describe('GaService integration schedule generation', () => {
   it('generates a schedule directly from service using mocked config data', async () => {
@@ -56,21 +63,33 @@ describe('GaService integration schedule generation', () => {
           configClassrooms: [
             {
               configClassroomId: 201n,
+              classroomId: 1,
               typeOfSchedule: 'MORNING',
               classroomType: 'CLASS',
               active: true,
+              classroom: {
+                name: '1',
+              },
             },
             {
               configClassroomId: 202n,
+              classroomId: 2,
               typeOfSchedule: 'AFTERNOON',
               classroomType: 'LAB',
               active: true,
+              classroom: {
+                name: '2',
+              },
             },
             {
               configClassroomId: 203n,
+              classroomId: 3,
               typeOfSchedule: 'BOTH',
               classroomType: 'BOTH',
               active: true,
+              classroom: {
+                name: '3',
+              },
             },
           ],
           configCourses: [
@@ -161,33 +180,54 @@ describe('GaService integration schedule generation', () => {
       },
     };
 
-    const service = new GaService(asGaServiceDependency(prismaMock));
+    const service = new GaService(
+      asPrismaDependency(prismaMock),
+      generatedScheduleServiceMock,
+    );
     const result = await service.generate(1);
 
-    expect(result.scheduleConfigId).toBe(1n);
-    expect(result.genes.length).toBeGreaterThan(0);
-    expect(result.metrics.requiredGeneCount).toBe(result.genes.length);
-    expect(result.fitness).toBeGreaterThan(0);
+    const items =
+      (result.items as Array<{
+        dayIndex: number;
+        startSlot: number;
+        periodCount: number;
+        sessionType: SessionType;
+        courseCode: number;
+        sectionIndex: number;
+        configProfessorId?: bigint;
+        configClassroomId?: bigint;
+      }>) ?? [];
 
-    for (const gene of result.genes) {
-      expect([0, 1, 2]).toContain(gene.dayIndex);
-      expect(gene.startSlot).toBeGreaterThanOrEqual(0);
-      expect(gene.periodCount).toBeGreaterThan(0);
-      if (gene.sessionType === SessionType.LAB) {
-        expect(gene.periodCount).toBe(3);
+    expect(result.scheduleConfigId).toBe(1n);
+    expect(items.length).toBeGreaterThan(0);
+
+    const summary = result.summary as {
+      requiredGeneCount: number;
+      fitness: number;
+    };
+
+    expect(summary.requiredGeneCount).toBe(items.length);
+    expect(summary.fitness).toBeGreaterThan(0);
+
+    for (const item of items) {
+      expect([0, 1, 2]).toContain(item.dayIndex);
+      expect(item.startSlot).toBeGreaterThanOrEqual(0);
+      expect(item.periodCount).toBeGreaterThan(0);
+      if (item.sessionType === SessionType.LAB) {
+        expect(item.periodCount).toBe(3);
       }
     }
 
-    const scheduleView = result.genes
-      .map((gene) => ({
-        dayIndex: gene.dayIndex,
-        startSlot: gene.startSlot,
-        periodCount: gene.periodCount,
-        courseCode: gene.courseCode,
-        section: gene.sectionIndex,
-        type: gene.sessionType,
-        professor: gene.configProfessorId?.toString() ?? 'UNASSIGNED',
-        classroom: gene.configClassroomId?.toString() ?? 'UNASSIGNED',
+    const scheduleView = items
+      .map((item) => ({
+        dayIndex: item.dayIndex,
+        startSlot: item.startSlot,
+        periodCount: item.periodCount,
+        courseCode: item.courseCode,
+        section: item.sectionIndex,
+        type: item.sessionType,
+        professor: item.configProfessorId?.toString() ?? 'UNASSIGNED',
+        classroom: item.configClassroomId?.toString() ?? 'UNASSIGNED',
       }))
       .sort(
         (left, right) =>

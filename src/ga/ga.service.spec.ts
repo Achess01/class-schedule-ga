@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { GeneratedScheduleService } from '../module/generated-schedule/generated-schedule.service';
 import { GaService } from './ga.service';
 
 jest.mock('../prisma/prisma.service', () => ({
@@ -15,6 +16,10 @@ describe('GaService', () => {
         GaService,
         {
           provide: PrismaService,
+          useValue: {},
+        },
+        {
+          provide: GeneratedScheduleService,
           useValue: {},
         },
       ],

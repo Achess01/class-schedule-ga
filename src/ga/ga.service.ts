@@ -1,20 +1,56 @@
 import { Injectable } from '@nestjs/common';
-import type { Chromosome } from './domain/chromosome';
 import { runGa } from './pipeline/engine';
 import { buildGaInput } from './pipeline/ga-input';
 import { initializePopulation } from './pipeline/population';
 import { PrismaService } from '../prisma/prisma.service';
+import { GeneratedScheduleService } from '../module/generated-schedule/generated-schedule.service';
+import { buildScheduleView } from './view/schedule-view.builder';
 
 @Injectable()
 export class GaService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly generatedScheduleService: GeneratedScheduleService,
+  ) {}
 
-  async generate(scheduleConfigId: number): Promise<Chromosome> {
+  async generate(scheduleConfigId: number, includeView = false) {
     const gaInput = await buildGaInput(
       this.prismaService,
       BigInt(scheduleConfigId),
     );
     const population = initializePopulation(gaInput);
-    return runGa(gaInput, population);
+    const chromosome = runGa(gaInput, population);
+
+    const generatedSchedule =
+      await this.generatedScheduleService.createFromChromosome(
+        BigInt(scheduleConfigId),
+        chromosome,
+      );
+
+    const response: Record<string, unknown> = {
+      generatedScheduleId: generatedSchedule.generatedScheduleId,
+      scheduleConfigId: BigInt(scheduleConfigId),
+      summary: {
+        fitness: chromosome.fitness,
+        hardPenalty: chromosome.hardPenalty,
+        softPenalty: chromosome.softPenalty,
+        feasibilityPenalty: chromosome.feasibilityPenalty,
+        requiredGeneCount: chromosome.metrics.requiredGeneCount,
+        assignedGeneCount: chromosome.metrics.assignedGeneCount,
+        unassignedClassroomCount: chromosome.metrics.unassignedClassroomCount,
+        unassignedProfessorCount: chromosome.metrics.unassignedProfessorCount,
+      },
+      items: chromosome.genes,
+    };
+
+    if (includeView) {
+      response.view = buildScheduleView(
+        chromosome.genes,
+        gaInput.slotCatalog,
+        gaInput.classrooms,
+      );
+    }
+
+    return response;
   }
 }

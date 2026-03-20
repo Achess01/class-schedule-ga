@@ -15,6 +15,7 @@ import { ScheduleConfigModule } from './module/schedule-config/schedule-config.m
 import { TimeSlotModule } from './module/time-slot/time-slot.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { GaModule } from './ga/ga.module';
+import { GeneratedScheduleModule } from './module/generated-schedule/generated-schedule.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { GaModule } from './ga/ga.module';
     ConfigCourseProfessorModule,
     CourseCareerModule,
     GaModule,
+    GeneratedScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

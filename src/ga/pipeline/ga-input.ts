@@ -27,6 +27,7 @@ export interface GeneAssignmentOptions {
 export interface GaInputContext {
   scheduleConfigId: bigint;
   slotCatalog: SlotCatalog;
+  classrooms: Array<{ configClassroomId: bigint; classroomName: string }>;
   selectionMethod: number;
   crossMethod: number;
   mutationMethod: number;
@@ -63,6 +64,9 @@ export async function buildGaInput(
       },
       configClassrooms: {
         where: { active: true },
+        include: {
+          classroom: true,
+        },
       },
     },
   });
@@ -275,6 +279,10 @@ export async function buildGaInput(
   return {
     scheduleConfigId,
     slotCatalog,
+    classrooms: scheduleConfig.configClassrooms.map((configClassroom) => ({
+      configClassroomId: configClassroom.configClassroomId,
+      classroomName: configClassroom.classroom.name,
+    })),
     selectionMethod: scheduleConfig.selectionMethod,
     crossMethod: scheduleConfig.crossMethod,
     mutationMethod: scheduleConfig.mutationMethod,
