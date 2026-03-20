@@ -4,7 +4,6 @@ import { buildGaInput } from './pipeline/ga-input';
 import { initializePopulation } from './pipeline/population';
 import { PrismaService } from '../prisma/prisma.service';
 import { GeneratedScheduleService } from '../module/generated-schedule/generated-schedule.service';
-import { buildScheduleView } from './view/schedule-view.builder';
 
 @Injectable()
 export class GaService {
@@ -13,7 +12,7 @@ export class GaService {
     private readonly generatedScheduleService: GeneratedScheduleService,
   ) {}
 
-  async generate(scheduleConfigId: number, includeView = false) {
+  async generate(scheduleConfigId: number) {
     const gaInput = await buildGaInput(
       this.prismaService,
       BigInt(scheduleConfigId),
@@ -25,6 +24,45 @@ export class GaService {
       await this.generatedScheduleService.createFromChromosome(
         BigInt(scheduleConfigId),
         chromosome,
+        {
+          periodDurationM: gaInput.slotCatalog.periodDurationM,
+          morningStartTime: new Date(
+            Date.UTC(
+              1970,
+              0,
+              1,
+              Math.floor(gaInput.slotCatalog.morningStartMinuteOfDay / 60),
+              gaInput.slotCatalog.morningStartMinuteOfDay % 60,
+            ),
+          ),
+          morningEndTime: new Date(
+            Date.UTC(
+              1970,
+              0,
+              1,
+              Math.floor(gaInput.slotCatalog.morningEndMinuteOfDay / 60),
+              gaInput.slotCatalog.morningEndMinuteOfDay % 60,
+            ),
+          ),
+          afternoonStartTime: new Date(
+            Date.UTC(
+              1970,
+              0,
+              1,
+              Math.floor(gaInput.slotCatalog.afternoonStartMinuteOfDay / 60),
+              gaInput.slotCatalog.afternoonStartMinuteOfDay % 60,
+            ),
+          ),
+          afternoonEndTime: new Date(
+            Date.UTC(
+              1970,
+              0,
+              1,
+              Math.floor(gaInput.slotCatalog.afternoonEndMinuteOfDay / 60),
+              gaInput.slotCatalog.afternoonEndMinuteOfDay % 60,
+            ),
+          ),
+        },
       );
 
     const response: Record<string, unknown> = {
@@ -42,14 +80,6 @@ export class GaService {
       },
       items: chromosome.genes,
     };
-
-    if (includeView) {
-      response.view = buildScheduleView(
-        chromosome.genes,
-        gaInput.slotCatalog,
-        gaInput.classrooms,
-      );
-    }
 
     return response;
   }

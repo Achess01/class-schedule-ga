@@ -1,11 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SessionType } from '../../ga/domain/session-type';
 import type { Chromosome } from '../../ga/domain/chromosome';
-import type { Gene } from '../../ga/domain/gene';
 import { AssignmentStatus } from '../../ga/domain/assignment-status';
 import { buildSlotCatalog } from '../../ga/domain/slot-catalog';
 import { evaluateChromosome } from '../../ga/fitness/fitness-evaluator';
-import { buildScheduleView } from '../../ga/view/schedule-view.builder';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -15,12 +13,24 @@ export class GeneratedScheduleService {
   async createFromChromosome(
     scheduleConfigId: bigint,
     chromosome: Chromosome,
+    snapshot: {
+      periodDurationM: number;
+      morningStartTime: Date;
+      morningEndTime: Date;
+      afternoonStartTime: Date;
+      afternoonEndTime: Date;
+    },
     createdBy?: string,
   ) {
     const generatedSchedule = await this.prismaService.generatedSchedule.create(
       {
         data: {
           scheduleConfigId,
+          periodDurationM: snapshot.periodDurationM,
+          morningStartTime: snapshot.morningStartTime,
+          morningEndTime: snapshot.morningEndTime,
+          afternoonStartTime: snapshot.afternoonStartTime,
+          afternoonEndTime: snapshot.afternoonEndTime,
           name: `Generated ${new Date().toISOString()}`,
           status: 'DRAFT',
           fitness: chromosome.fitness,
@@ -64,21 +74,11 @@ export class GeneratedScheduleService {
     return generatedSchedule;
   }
 
-  async findOne(generatedScheduleId: bigint, includeView = false) {
+  async findOne(generatedScheduleId: bigint) {
     const generatedSchedule =
       await this.prismaService.generatedSchedule.findUnique({
         where: { generatedScheduleId },
         include: {
-          scheduleConfig: {
-            include: {
-              configClassrooms: {
-                where: { active: true },
-                include: {
-                  classroom: true,
-                },
-              },
-            },
-          },
           items: {
             where: { active: true },
             include: {
@@ -138,9 +138,24 @@ export class GeneratedScheduleService {
       careerCodes: item.careerCodes,
     }));
 
+    const slotCatalog = buildSlotCatalog({
+      periodDurationM: generatedSchedule.periodDurationM,
+      morningStartTime: generatedSchedule.morningStartTime,
+      morningEndTime: generatedSchedule.morningEndTime,
+      afternoonStartTime: generatedSchedule.afternoonStartTime,
+      afternoonEndTime: generatedSchedule.afternoonEndTime,
+    });
+
     const response: Record<string, unknown> = {
       generatedScheduleId: generatedSchedule.generatedScheduleId,
       scheduleConfigId: generatedSchedule.scheduleConfigId,
+      snapshot: {
+        periodDurationM: generatedSchedule.periodDurationM,
+        morningStartTime: generatedSchedule.morningStartTime,
+        morningEndTime: generatedSchedule.morningEndTime,
+        afternoonStartTime: generatedSchedule.afternoonStartTime,
+        afternoonEndTime: generatedSchedule.afternoonEndTime,
+      },
       status: generatedSchedule.status,
       fitness: generatedSchedule.fitness,
       hardPenalty: generatedSchedule.hardPenalty,
@@ -150,33 +165,18 @@ export class GeneratedScheduleService {
       assignedGeneCount: generatedSchedule.assignedGeneCount,
       unassignedClassroomCount: generatedSchedule.unassignedClassroomCount,
       unassignedProfessorCount: generatedSchedule.unassignedProfessorCount,
+      slots: slotCatalog.byDay[0].map((slot) => ({
+        slotIndex: slot.slotIndex,
+        startMinuteOfDay: slot.startMinuteOfDay,
+        endMinuteOfDay: slot.endMinuteOfDay,
+        startTime: toHourMinute(slot.startMinuteOfDay),
+        endTime: toHourMinute(slot.endMinuteOfDay),
+        label: `${toHourMinute(slot.startMinuteOfDay)}-${toHourMinute(slot.endMinuteOfDay)}`,
+      })),
       items,
       createdAt: generatedSchedule.createdAt,
       updatedAt: generatedSchedule.updatedAt,
     };
-
-    if (includeView) {
-      const slotCatalog = buildSlotCatalog({
-        periodDurationM: generatedSchedule.scheduleConfig.periodDurationM,
-        morningStartTime: generatedSchedule.scheduleConfig.morningStartTime,
-        morningEndTime: generatedSchedule.scheduleConfig.morningEndTime,
-        afternoonStartTime: generatedSchedule.scheduleConfig.afternoonStartTime,
-        afternoonEndTime: generatedSchedule.scheduleConfig.afternoonEndTime,
-      });
-
-      const genes = mapItemsToGenes(
-        generatedSchedule.items,
-        generatedSchedule.scheduleConfigId,
-      );
-      response.view = buildScheduleView(
-        genes,
-        slotCatalog,
-        generatedSchedule.scheduleConfig.configClassrooms.map((classroom) => ({
-          configClassroomId: classroom.configClassroomId,
-          classroomName: classroom.classroom.name,
-        })),
-      );
-    }
 
     return response;
   }
@@ -195,9 +195,6 @@ export class GeneratedScheduleService {
   ) {
     const schedule = await this.prismaService.generatedSchedule.findUnique({
       where: { generatedScheduleId },
-      include: {
-        scheduleConfig: true,
-      },
     });
 
     if (!schedule || !schedule.active) {
@@ -235,11 +232,11 @@ export class GeneratedScheduleService {
     });
 
     const slotCatalog = buildSlotCatalog({
-      periodDurationM: schedule.scheduleConfig.periodDurationM,
-      morningStartTime: schedule.scheduleConfig.morningStartTime,
-      morningEndTime: schedule.scheduleConfig.morningEndTime,
-      afternoonStartTime: schedule.scheduleConfig.afternoonStartTime,
-      afternoonEndTime: schedule.scheduleConfig.afternoonEndTime,
+      periodDurationM: schedule.periodDurationM,
+      morningStartTime: schedule.morningStartTime,
+      morningEndTime: schedule.morningEndTime,
+      afternoonStartTime: schedule.afternoonStartTime,
+      afternoonEndTime: schedule.afternoonEndTime,
     });
 
     const chromosome: Chromosome = {
@@ -322,53 +319,16 @@ export class GeneratedScheduleService {
   }
 }
 
-function mapItemsToGenes(
-  items: Array<{
-    generatedScheduleItemId: bigint;
-    configCourseId: bigint;
-    courseCode: number;
-    careerCodes: number[];
-    semester: number;
-    isMandatory: boolean;
-    isCommonArea: boolean;
-    sectionIndex: number;
-    sessionType: string;
-    dayIndex: number;
-    startSlot: number;
-    periodCount: number;
-    requireClassroom: boolean;
-    configClassroomId: bigint | null;
-    configProfessorId: bigint | null;
-    assignmentStatus: string;
-    isFixed: boolean;
-  }>,
-  scheduleConfigId: bigint,
-): Gene[] {
-  return items.map((item) => ({
-    geneId: item.generatedScheduleItemId.toString(),
-    scheduleConfigId,
-    configCourseId: item.configCourseId,
-    courseCode: item.courseCode,
-    academicTargets: [],
-    careerCodes: item.careerCodes,
-    semester: item.semester,
-    isMandatory: item.isMandatory,
-    isCommonArea: item.isCommonArea,
-    sectionIndex: item.sectionIndex === 2 ? 2 : 1,
-    sessionType: toSessionType(item.sessionType),
-    dayIndex: toDayIndex(item.dayIndex),
-    startSlot: item.startSlot,
-    periodCount: item.periodCount,
-    requireClassroom: item.requireClassroom,
-    configClassroomId: item.configClassroomId ?? undefined,
-    configProfessorId: item.configProfessorId ?? undefined,
-    assignmentStatus: toAssignmentStatus(item.assignmentStatus),
-    isFixed: item.isFixed,
-  }));
-}
-
 function toMinuteOfDay(value: Date): number {
   return value.getUTCHours() * 60 + value.getUTCMinutes();
+}
+
+function toHourMinute(minuteOfDay: number): string {
+  const hours = Math.floor(minuteOfDay / 60)
+    .toString()
+    .padStart(2, '0');
+  const minutes = (minuteOfDay % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 function toDayIndex(value: number): 0 | 1 | 2 {

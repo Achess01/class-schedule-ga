@@ -1,6 +1,11 @@
 model GeneratedSchedule {
   generatedScheduleId       BigInt @id @default(autoincrement())
   scheduleConfigId          BigInt
+  periodDurationM           Int
+  morningStartTime          DateTime
+  morningEndTime            DateTime
+  afternoonStartTime        DateTime
+  afternoonEndTime          DateTime
   name                      String?
   status                    String  @default("DRAFT")
   fitness                   Float

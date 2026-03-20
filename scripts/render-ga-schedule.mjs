@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 
 const DEFAULTS = {
   baseUrl: 'http://localhost:3000',
@@ -10,11 +10,11 @@ const DEFAULTS = {
 };
 
 const args = parseArgs(process.argv.slice(2));
-const gaPath = args.ga;
 const configId = args['config-id'];
+const generatedScheduleId = args['generated-schedule-id'];
 const runGa = args['run-ga'] === 'true';
 
-if ((!gaPath && !runGa) || !configId) {
+if ((!runGa && !generatedScheduleId) || (runGa && !configId)) {
   printUsageAndExit();
 }
 
@@ -24,48 +24,13 @@ const password = args.password ?? DEFAULTS.password;
 const outPrefix = args.out ?? DEFAULTS.out;
 
 const token = await loginAndGetToken(baseUrl, email, password);
-const gaResult = gaPath
-  ? JSON.parse(await readFile(gaPath, 'utf8'))
-  : await apiPost(baseUrl, `/ga/generate/${configId}`, {}, token);
+const payload = runGa
+  ? await runAndFetchGeneratedSchedule(baseUrl, configId, token)
+  : await apiGet(baseUrl, `/generated-schedules/${generatedScheduleId}`, token);
 
-const [scheduleConfig, allConfigClassrooms, allClassrooms] = await Promise.all([
-  apiGet(baseUrl, `/schedule-configs/${configId}`, token),
-  apiGet(baseUrl, '/config-classrooms', token),
-  apiGet(baseUrl, '/classrooms', token),
-]);
-
-const configClassrooms = asArray(allConfigClassrooms).filter(
-  (item) =>
-    String(item.scheduleConfigId) === String(configId) && item.active !== false,
-);
-
-const classroomNameById = new Map(
-  asArray(allClassrooms)
-    .filter((classroom) => classroom.active !== false)
-    .map((classroom) => [String(classroom.classroomId), classroom.name]),
-);
-
-const classroomColumns = configClassrooms
-  .map((configClassroom) => ({
-    configClassroomId: String(configClassroom.configClassroomId),
-    classroomId: String(configClassroom.classroomId),
-    classroomName:
-      classroomNameById.get(String(configClassroom.classroomId)) ??
-      `Classroom ${configClassroom.classroomId}`,
-  }))
-  .sort((left, right) => left.classroomName.localeCompare(right.classroomName));
-
-const slots = buildSlots(scheduleConfig);
-const table = buildCombinedTable(gaResult, slots, classroomColumns);
-
-const markdown = renderMarkdown(
-  table,
-  gaResult,
-  scheduleConfig,
-  classroomColumns,
-  outPrefix,
-);
-const html = renderHtml(table, gaResult, scheduleConfig, outPrefix);
+const table = buildTableFromSlotsAndItems(payload);
+const markdown = renderMarkdown(payload, table, outPrefix);
+const html = renderHtml(payload, table, outPrefix);
 
 await writeFile(`${outPrefix}.md`, markdown, 'utf8');
 await writeFile(`${outPrefix}.html`, html, 'utf8');
@@ -95,8 +60,8 @@ function printUsageAndExit() {
   console.error(
     [
       'Usage:',
-      '  node scripts/render-ga-schedule.mjs --ga <ga-result.json> --config-id <id> [--base-url <url>] [--email <email>] [--password <password>] [--out <prefix>]',
       '  node scripts/render-ga-schedule.mjs --run-ga --config-id <id> [--base-url <url>] [--email <email>] [--password <password>] [--out <prefix>]',
+      '  node scripts/render-ga-schedule.mjs --generated-schedule-id <id> [--base-url <url>] [--email <email>] [--password <password>] [--out <prefix>]',
       '',
       'Defaults:',
       `  --base-url ${DEFAULTS.baseUrl}`,
@@ -122,9 +87,9 @@ async function loginAndGetToken(baseUrl, email, password) {
     );
   }
 
-  const token = payload.access_token ?? payload.token;
+  const token = payload.access_token;
   if (!token) {
-    throw new Error('Login response does not include accessToken');
+    throw new Error('Login response does not include access_token');
   }
 
   return token;
@@ -168,140 +133,146 @@ async function apiPost(baseUrl, path, body, token) {
   return payload;
 }
 
-function asArray(value) {
-  return Array.isArray(value) ? value : [];
+async function runAndFetchGeneratedSchedule(baseUrl, configId, token) {
+  const generationPayload = await apiPost(
+    baseUrl,
+    `/ga/generate/${configId}`,
+    {},
+    token,
+  );
+
+  const id = generationPayload.generatedScheduleId;
+  if (!id) {
+    throw new Error(
+      'GA generation response does not include generatedScheduleId',
+    );
+  }
+
+  return apiGet(baseUrl, `/generated-schedules/${id}`, token);
 }
 
-function buildSlots(scheduleConfig) {
-  const duration = Number(scheduleConfig.periodDurationM);
+function buildTableFromSlotsAndItems(payload) {
+  const slots = Array.isArray(payload.slots) ? payload.slots : [];
+  const items = Array.isArray(payload.items) ? payload.items : [];
 
-  const morningStart = toMinuteOfDay(scheduleConfig.morningStartTime);
-  const morningEnd = toMinuteOfDay(scheduleConfig.morningEndTime);
-  const afternoonStart = toMinuteOfDay(scheduleConfig.afternoonStartTime);
-  const afternoonEnd = toMinuteOfDay(scheduleConfig.afternoonEndTime);
-
-  const morningCount = Math.floor((morningEnd - morningStart) / duration);
-  const afternoonCount = Math.floor((afternoonEnd - afternoonStart) / duration);
-
-  const slots = [];
-  for (let i = 0; i < morningCount; i += 1) {
-    slots.push({
-      slotIndex: slots.length,
-      startMinute: morningStart + i * duration,
-      endMinute: morningStart + (i + 1) * duration,
-    });
+  if (slots.length === 0) {
+    throw new Error('Payload does not include slots.');
   }
 
-  for (let i = 0; i < afternoonCount; i += 1) {
-    slots.push({
-      slotIndex: slots.length,
-      startMinute: afternoonStart + i * duration,
-      endMinute: afternoonStart + (i + 1) * duration,
-    });
-  }
-
-  return slots;
-}
-
-function buildCombinedTable(gaResult, slots, classroomColumns) {
-  const dayBuckets = [
-    { dayIndex: 0, labelPrefix: '' },
-    { dayIndex: 1, labelPrefix: 'M LAB' },
-    { dayIndex: 2, labelPrefix: 'J LAB' },
-  ];
-
-  const columns = [];
-  for (const room of classroomColumns) {
-    for (const day of dayBuckets) {
-      columns.push({
-        key: `${day.dayIndex}:${room.configClassroomId}`,
-        label: `${day.labelPrefix}\n${room.classroomName}`,
-      });
-    }
-  }
-
-  const rows = slots.map((slot) => {
-    const row = {
-      Slot: `${toHourMinute(slot.startMinute)}-${toHourMinute(slot.endMinute)}`,
-    };
-    for (const column of columns) {
-      row[column.label] = '';
-    }
-    return row;
-  });
-
-  const genes = asArray(gaResult.genes);
-  for (const gene of genes) {
+  const classrooms = new Map();
+  for (const item of items) {
     if (
-      gene.configClassroomId === undefined ||
-      gene.configClassroomId === null
+      item.configClassroomId === undefined ||
+      item.configClassroomId === null
     ) {
       continue;
     }
 
-    const start = Number(gene.startSlot);
-    const periods = Number(gene.periodCount);
-    const dayIndex = Number(gene.dayIndex);
-    const key = `${dayIndex}:${String(gene.configClassroomId)}`;
-    const column = columns.find((item) => item.key === key);
-    if (!column) {
+    const id = String(item.configClassroomId);
+    if (!classrooms.has(id)) {
+      classrooms.set(id, item.classroomName ?? `Classroom ${id}`);
+    }
+  }
+
+  const sortedClassrooms = [...classrooms.entries()]
+    .map(([configClassroomId, classroomName]) => ({
+      configClassroomId,
+      classroomName,
+    }))
+    .sort((left, right) =>
+      left.classroomName.localeCompare(right.classroomName),
+    );
+
+  const dayBuckets = [
+    { dayIndex: 0, prefix: 'CLASS' },
+    { dayIndex: 1, prefix: 'LAB1 LAB' },
+    { dayIndex: 2, prefix: 'LAB2 LAB' },
+  ];
+
+  const columns = sortedClassrooms.flatMap((room) =>
+    dayBuckets.map((day) => ({
+      key: `${day.dayIndex}:${room.configClassroomId}`,
+      label: `${day.prefix} - ${room.classroomName}`,
+    })),
+  );
+
+  const rows = slots.map((slot) => {
+    const row = {
+      slot: slot.label ?? `${slot.startTime}-${slot.endTime}`,
+      cells: {},
+    };
+    for (const column of columns) {
+      row.cells[column.key] = '';
+    }
+    return row;
+  });
+
+  for (const item of items) {
+    if (
+      item.configClassroomId === undefined ||
+      item.configClassroomId === null
+    ) {
       continue;
     }
 
-    const professor = gene.configProfessorId ?? 'UNASSIGNED';
-    const cellText = `${gene.courseCode} ${gene.sectionIndex === 1 ? "A" : "B"} P:${professor}`;
+    const key = `${Number(item.dayIndex)}:${String(item.configClassroomId)}`;
+    const exists = columns.some((column) => column.key === key);
+    if (!exists) {
+      continue;
+    }
 
-    for (let offset = 0; offset < periods; offset += 1) {
-      const row = rows[start + offset];
+    const sectionLabel = Number(item.sectionIndex) === 1 ? 'A' : 'B';
+    const professor =
+      item.professorName ?? item.configProfessorId ?? 'UNASSIGNED';
+    const cellValue =
+      `${item.courseCode} ${item.courseName ?? ''} ${sectionLabel} P:${professor}`.trim();
+
+    for (let offset = 0; offset < Number(item.periodCount); offset += 1) {
+      const row = rows[Number(item.startSlot) + offset];
       if (!row) {
         continue;
       }
-      if (!row[column.label]) {
-        row[column.label] = cellText;
+      if (!row.cells[key]) {
+        row.cells[key] = cellValue;
       } else {
-        row[column.label] = `${row[column.label]}<br>${cellText}`;
+        row.cells[key] = `${row.cells[key]} | ${cellValue}`;
       }
     }
   }
 
-  return {
-    columns: ['Slot', ...columns.map((column) => column.label)],
-    rows,
-  };
+  return { columns, rows };
 }
 
-function renderMarkdown(
-  table,
-  gaResult,
-  scheduleConfig,
-  classroomColumns,
-  outPrefix,
-) {
-  const header = table.columns.map((value) => escapeMd(value)).join(' | ');
-  const divider = table.columns.map(() => '---').join(' | ');
-  const lines = [`| ${header} |`, `| ${divider} |`];
+function renderMarkdown(payload, table, outPrefix) {
+  const headers = ['Slot', ...table.columns.map((column) => column.label)];
+  const divider = headers.map(() => '---').join(' | ');
+  const lines = [`| ${headers.map(escapeMd).join(' | ')} |`, `| ${divider} |`];
 
   for (const row of table.rows) {
-    const values = table.columns.map((column) => escapeMd(row[column] ?? ''));
-    lines.push(`| ${values.join(' | ')} |`);
+    const values = [row.slot];
+    for (const column of table.columns) {
+      values.push(row.cells[column.key] ?? '');
+    }
+    lines.push(`| ${values.map(escapeMd).join(' | ')} |`);
   }
 
-  const unassigned = asArray(gaResult.genes)
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const unassigned = items
     .filter(
-      (gene) =>
-        gene.configClassroomId === undefined || gene.configClassroomId === null,
+      (item) =>
+        item.configClassroomId === undefined || item.configClassroomId === null,
     )
-    .map(
-      (gene) =>
-        `- ${gene.courseCode} S${gene.sectionIndex} ${gene.sessionType} P:${gene.configProfessorId ?? 'UNASSIGNED'}`,
-    );
+    .map((item) => {
+      const professor =
+        item.professorName ?? item.configProfessorId ?? 'UNASSIGNED';
+      return `- ${item.courseCode} ${item.courseName ?? ''} S${item.sectionIndex} ${item.sessionType} P:${professor}`;
+    });
 
   return [
     `# ${outPrefix}`,
     '',
-    `- scheduleConfigId: ${scheduleConfig.scheduleConfigId}`,
-    `- periodDurationM: ${scheduleConfig.periodDurationM}`,
-    `- classrooms in config: ${classroomColumns.length}`,
+    `- generatedScheduleId: ${payload.generatedScheduleId ?? 'N/A'}`,
+    `- scheduleConfigId: ${payload.scheduleConfigId}`,
     '',
     ...lines,
     '',
@@ -311,31 +282,38 @@ function renderMarkdown(
   ].join('\n');
 }
 
-function renderHtml(table, gaResult, scheduleConfig, outPrefix) {
-  const th = table.columns
-    .map((column) => `<th>${escapeHtml(column)}</th>`)
-    .join('');
+function renderHtml(payload, table, outPrefix) {
+  const headers = ['Slot', ...table.columns.map((column) => column.label)];
+  const th = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('');
+
   const tr = table.rows
     .map((row) => {
-      const tds = table.columns
+      const values = [row.slot];
+      for (const column of table.columns) {
+        values.push(row.cells[column.key] ?? '');
+      }
+
+      const tds = values
         .map(
-          (column) =>
-            `<td>${escapeHtml((row[column] ?? '').replaceAll('<br>', '\n')).replaceAll('\n', '<br>')}</td>`,
+          (value) =>
+            `<td>${escapeHtml(String(value)).replaceAll('|', '<br>')}</td>`,
         )
         .join('');
       return `<tr>${tds}</tr>`;
     })
     .join('\n');
 
-  const unassigned = asArray(gaResult.genes)
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const unassigned = items
     .filter(
-      (gene) =>
-        gene.configClassroomId === undefined || gene.configClassroomId === null,
+      (item) =>
+        item.configClassroomId === undefined || item.configClassroomId === null,
     )
-    .map(
-      (gene) =>
-        `<li>${escapeHtml(`${gene.courseCode} S${gene.sectionIndex} ${gene.sessionType} P:${gene.configProfessorId ?? 'UNASSIGNED'}`)}</li>`,
-    )
+    .map((item) => {
+      const professor =
+        item.professorName ?? item.configProfessorId ?? 'UNASSIGNED';
+      return `<li>${escapeHtml(`${item.courseCode} ${item.courseName ?? ''} S${item.sectionIndex} ${item.sessionType} P:${professor}`)}</li>`;
+    })
     .join('');
 
   return `<!doctype html>
@@ -354,7 +332,7 @@ function renderHtml(table, gaResult, scheduleConfig, outPrefix) {
 </head>
 <body>
   <h1>${escapeHtml(outPrefix)}</h1>
-  <p>scheduleConfigId: ${escapeHtml(String(scheduleConfig.scheduleConfigId))} | periodDurationM: ${escapeHtml(String(scheduleConfig.periodDurationM))}</p>
+  <p>generatedScheduleId: ${escapeHtml(String(payload.generatedScheduleId ?? 'N/A'))} | scheduleConfigId: ${escapeHtml(String(payload.scheduleConfigId))}</p>
   <div class="wrap">
     <table>
       <thead><tr>${th}</tr></thead>
@@ -367,17 +345,6 @@ function renderHtml(table, gaResult, scheduleConfig, outPrefix) {
   <ul>${unassigned || '<li>None</li>'}</ul>
 </body>
 </html>`;
-}
-
-function toMinuteOfDay(dateLike) {
-  const date = new Date(dateLike);
-  return date.getUTCHours() * 60 + date.getUTCMinutes();
-}
-
-function toHourMinute(minutes) {
-  const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
-  const mm = String(minutes % 60).padStart(2, '0');
-  return `${hh}:${mm}`;
 }
 
 function escapeMd(value) {

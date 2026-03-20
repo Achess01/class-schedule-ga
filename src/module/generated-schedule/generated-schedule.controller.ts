@@ -3,10 +3,8 @@ import {
   Controller,
   Get,
   Param,
-  ParseBoolPipe,
   ParseIntPipe,
   Patch,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -42,13 +40,8 @@ export class GeneratedScheduleController {
   @Get(':generatedScheduleId')
   async findOne(
     @Param('generatedScheduleId', ParseIntPipe) generatedScheduleId: number,
-    @Query('includeView', new ParseBoolPipe({ optional: true }))
-    includeView?: boolean,
   ) {
-    return this.generatedScheduleService.findOne(
-      BigInt(generatedScheduleId),
-      includeView ?? false,
-    );
+    return this.generatedScheduleService.findOne(BigInt(generatedScheduleId));
   }
 
   @ApiBearerAuth()

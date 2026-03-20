@@ -3,8 +3,6 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  Query,
-  ParseBoolPipe,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -54,9 +52,7 @@ export class GaController {
   @Post('generate/:scheduleConfigId')
   async generate(
     @Param('scheduleConfigId', ParseIntPipe) scheduleConfigId: number,
-    @Query('includeView', new ParseBoolPipe({ optional: true }))
-    includeView?: boolean,
   ) {
-    return this.gaService.generate(scheduleConfigId, includeView ?? false);
+    return this.gaService.generate(scheduleConfigId);
   }
 }
