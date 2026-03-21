@@ -29,8 +29,6 @@ export class GeneratedScheduleController {
     private readonly generatedScheduleService: GeneratedScheduleService,
   ) {}
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get generated schedule by id' })
   @ApiOkResponse({ description: 'Generated schedule fetched successfully' })
   @ApiNotFoundResponse({ description: 'Generated schedule not found' })
@@ -44,8 +42,6 @@ export class GeneratedScheduleController {
     return this.generatedScheduleService.findOne(BigInt(generatedScheduleId));
   }
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get generated schedule list' })
   @ApiOkResponse({ description: 'Generated schedule fetched successfully' })
   @ApiNotFoundResponse({ description: 'Generated schedule not found' })
