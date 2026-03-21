@@ -5,11 +5,6 @@ export class CreateConfigCourseProfessorDto {
   @ApiProperty({ example: 1 })
   @IsInt()
   @Min(1)
-  configCourseProfessorId: number;
-
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @Min(1)
   configProfessorId: number;
 
   @ApiProperty({ example: 1 })

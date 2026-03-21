@@ -13,7 +13,6 @@ export class ScheduleConfigService {
   ) {
     return this.prismaService.scheduleConfig.create({
       data: {
-        scheduleConfigId: BigInt(createScheduleConfigDto.scheduleConfigId),
         periodDurationM: createScheduleConfigDto.periodDurationM,
         morningStartTime: createScheduleConfigDto.morningStartTime,
         morningEndTime: createScheduleConfigDto.morningEndTime,

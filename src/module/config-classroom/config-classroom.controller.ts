@@ -38,7 +38,7 @@ export class ConfigClassroomController {
     description: 'Config classroom created successfully',
     schema: {
       example: {
-        configClassroomId: 1,
+        configClassroomId: '1',
         classroomId: 101,
         scheduleConfigId: 1,
         typeOfSchedule: 'MORNING',

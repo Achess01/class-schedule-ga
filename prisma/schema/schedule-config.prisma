@@ -1,5 +1,5 @@
 model ScheduleConfig {
-  scheduleConfigId BigInt @id
+  scheduleConfigId BigInt @id @default(autoincrement())
   periodDurationM  Int
 
   morningStartTime   DateTime

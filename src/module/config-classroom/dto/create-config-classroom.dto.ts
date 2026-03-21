@@ -2,11 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsInt, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateConfigClassroomDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @Min(1)
-  configClassroomId: number;
-
   @ApiProperty({ example: 101 })
   @IsInt()
   @Min(1)

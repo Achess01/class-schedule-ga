@@ -14,11 +14,6 @@ export class CreateConfigCourseDto {
   @ApiProperty({ example: 1 })
   @IsInt()
   @Min(1)
-  configCourseId: number;
-
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @Min(1)
   scheduleConfigId: number;
 
   @ApiProperty({ example: 1201 })

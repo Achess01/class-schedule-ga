@@ -73,6 +73,9 @@ export class GeneratedScheduleService {
 
     return generatedSchedule;
   }
+  async find() {
+    return this.prismaService.generatedSchedule.findMany();
+  }
 
   async findOne(generatedScheduleId: bigint) {
     const generatedSchedule =

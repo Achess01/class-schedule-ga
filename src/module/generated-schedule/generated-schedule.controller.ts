@@ -46,6 +46,19 @@ export class GeneratedScheduleController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get generated schedule list' })
+  @ApiOkResponse({ description: 'Generated schedule fetched successfully' })
+  @ApiNotFoundResponse({ description: 'Generated schedule not found' })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid authorization token',
+  })
+  @Get()
+  async findAll() {
+    return this.generatedScheduleService.find();
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update generated schedule item' })
   @ApiOkResponse({
     description: 'Generated schedule item updated with recalculated warnings',

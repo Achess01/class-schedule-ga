@@ -15,7 +15,6 @@ export class ConfigClassroomService {
 
     return this.prismaService.configClassroom.create({
       data: {
-        configClassroomId: BigInt(createDto.configClassroomId),
         classroomId: createDto.classroomId,
         scheduleConfigId: BigInt(createDto.scheduleConfigId),
         typeOfSchedule: createDto.typeOfSchedule,
@@ -63,9 +62,6 @@ export class ConfigClassroomService {
     return this.prismaService.configClassroom.update({
       where: { configClassroomId: BigInt(configClassroomId) },
       data: {
-        configClassroomId: updateDto.configClassroomId
-          ? BigInt(updateDto.configClassroomId)
-          : undefined,
         classroomId: updateDto.classroomId,
         scheduleConfigId: updateDto.scheduleConfigId
           ? BigInt(updateDto.scheduleConfigId)

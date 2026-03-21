@@ -38,7 +38,7 @@ export class ScheduleConfigController {
     description: 'Schedule config created successfully',
     schema: {
       example: {
-        scheduleConfigId: 1,
+        scheduleConfigId: '1',
         periodDurationM: 50,
         selectionMethod: 1,
         crossMethod: 1,

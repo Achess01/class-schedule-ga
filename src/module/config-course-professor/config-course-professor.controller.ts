@@ -38,7 +38,7 @@ export class ConfigCourseProfessorController {
     description: 'Config course professor created successfully',
     schema: {
       example: {
-        configCourseProfessorId: 1,
+        configCourseProfessorId: '1',
         configProfessorId: 1,
         configCourseId: 1,
         createdBy: '12',

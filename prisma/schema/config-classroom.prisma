@@ -1,5 +1,5 @@
 model ConfigClassroom {
-  configClassroomId BigInt @id
+  configClassroomId BigInt @id @default(autoincrement())
   classroomId       Int
   scheduleConfigId  BigInt
   typeOfSchedule    String

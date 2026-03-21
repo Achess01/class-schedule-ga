@@ -15,8 +15,7 @@ export class ConfigProfessorService {
 
     return this.prismaService.configProfessor.create({
       data: {
-        ...createDto,
-        configProfessorId: BigInt(createDto.configProfessorId),
+        professorCode: createDto.professorCode,
         scheduleConfigId: BigInt(createDto.scheduleConfigId),
         createdBy: String(userId),
       },
@@ -61,10 +60,7 @@ export class ConfigProfessorService {
     return this.prismaService.configProfessor.update({
       where: { configProfessorId: BigInt(configProfessorId) },
       data: {
-        ...updateDto,
-        configProfessorId: updateDto.configProfessorId
-          ? BigInt(updateDto.configProfessorId)
-          : undefined,
+        professorCode: updateDto.professorCode,
         scheduleConfigId: updateDto.scheduleConfigId
           ? BigInt(updateDto.scheduleConfigId)
           : undefined,

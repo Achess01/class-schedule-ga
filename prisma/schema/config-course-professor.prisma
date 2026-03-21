@@ -1,5 +1,5 @@
 model ConfigCourseProfessor {
-  configCourseProfessorId BigInt @id
+  configCourseProfessorId BigInt @id @default(autoincrement())
   configProfessorId       BigInt
   configCourseId          BigInt
 
