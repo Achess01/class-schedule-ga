@@ -148,6 +148,7 @@ export class ConfigCourseService {
         where: {
           scheduleConfigId: BigInt(scheduleConfigId),
           courseCode: courseCode,
+          active: true,
         },
       });
 

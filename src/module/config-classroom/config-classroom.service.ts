@@ -124,7 +124,11 @@ export class ConfigClassroomService {
     if (classroomId && scheduleConfigId) {
       const classroomConfig =
         await this.prismaService.configClassroom.findFirst({
-          where: { classroomId, scheduleConfigId: BigInt(scheduleConfigId) },
+          where: {
+            classroomId,
+            scheduleConfigId: BigInt(scheduleConfigId),
+            active: true,
+          },
         });
 
       if (classroomConfig) {

@@ -124,6 +124,7 @@ export class ConfigCourseProfessorService {
           where: {
             configProfessorId: BigInt(configProfessorId),
             configCourseId: BigInt(configCourseId),
+            active: true,
           },
         });
 

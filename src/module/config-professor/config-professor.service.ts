@@ -118,7 +118,11 @@ export class ConfigProfessorService {
 
     if (professorCode && scheduleConfigId) {
       const exists = await this.prismaService.configProfessor.findFirst({
-        where: { professorCode, scheduleConfigId: BigInt(scheduleConfigId) },
+        where: {
+          professorCode,
+          scheduleConfigId: BigInt(scheduleConfigId),
+          active: true,
+        },
       });
 
       if (exists) {
