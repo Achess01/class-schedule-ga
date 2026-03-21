@@ -140,7 +140,11 @@ export class ConfigCourseController {
     description: 'Missing or invalid authorization token',
   })
   @Delete(':configCourseId')
-  async remove(@Param('configCourseId', ParseIntPipe) configCourseId: number) {
-    return this.service.remove(configCourseId);
+  async remove(
+    @Param('configCourseId', ParseIntPipe) configCourseId: number,
+    @Req() req: Request,
+  ) {
+    const payload = req['user'] as JwtPayload;
+    return this.service.remove(configCourseId, payload.sub);
   }
 }

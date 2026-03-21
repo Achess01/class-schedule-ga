@@ -148,7 +148,9 @@ export class ConfigCourseProfessorController {
   async remove(
     @Param('configCourseProfessorId', ParseIntPipe)
     configCourseProfessorId: number,
+    @Req() req: Request,
   ) {
-    return this.service.remove(configCourseProfessorId);
+    const payload = req['user'] as JwtPayload;
+    return this.service.remove(configCourseProfessorId, payload.sub);
   }
 }

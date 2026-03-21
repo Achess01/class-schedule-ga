@@ -76,11 +76,15 @@ export class ConfigProfessorService {
     });
   }
 
-  async remove(configProfessorId: number) {
+  async remove(configProfessorId: number, userId: number) {
     await this.findOne(configProfessorId);
 
-    return this.prismaService.configProfessor.delete({
+    return this.prismaService.configProfessor.update({
       where: { configProfessorId: BigInt(configProfessorId) },
+      data: {
+        active: false,
+        updatedBy: String(userId),
+      },
     });
   }
 
