@@ -4,6 +4,8 @@ import type { Chromosome } from '../../ga/domain/chromosome';
 import { AssignmentStatus } from '../../ga/domain/assignment-status';
 import { buildSlotCatalog } from '../../ga/domain/slot-catalog';
 import { evaluateChromosome } from '../../ga/fitness/fitness-evaluator';
+import { getViolationMessageEs } from '../../ga/domain/violation-code';
+import type { ViolationDetail } from '../../ga/domain/violation-detail';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -149,6 +151,68 @@ export class GeneratedScheduleService {
       afternoonEndTime: generatedSchedule.afternoonEndTime,
     });
 
+    const evaluated = evaluateChromosome(
+      {
+        chromosomeId: generatedSchedule.generatedScheduleId.toString(),
+        scheduleConfigId: generatedSchedule.scheduleConfigId,
+        genes: generatedSchedule.items.map((item) => ({
+          geneId: item.generatedScheduleItemId.toString(),
+          scheduleConfigId: generatedSchedule.scheduleConfigId,
+          configCourseId: item.configCourseId,
+          courseCode: item.courseCode,
+          academicTargets: [],
+          careerCodes: item.careerCodes,
+          semester: item.semester,
+          isMandatory: item.isMandatory,
+          isCommonArea: item.isCommonArea,
+          sectionIndex: item.sectionIndex === 2 ? 2 : 1,
+          sessionType: toSessionType(item.sessionType),
+          dayIndex: toDayIndex(item.dayIndex),
+          startSlot: item.startSlot,
+          periodCount: item.periodCount,
+          requireClassroom: item.requireClassroom,
+          configClassroomId: item.configClassroomId ?? undefined,
+          configProfessorId: item.configProfessorId ?? undefined,
+          professorEntryMinute: item.configProfessor
+            ? toMinuteOfDay(item.configProfessor.professor.entryTime)
+            : undefined,
+          professorExitMinute: item.configProfessor
+            ? toMinuteOfDay(item.configProfessor.professor.exitTime)
+            : undefined,
+          assignmentStatus: toAssignmentStatus(item.assignmentStatus),
+          isFixed: item.isFixed,
+        })),
+        fitness: 0,
+        hardPenalty: 0,
+        softPenalty: 0,
+        feasibilityPenalty: 0,
+        violations: [],
+        violationDetails: [],
+        metrics: {
+          requiredGeneCount: 0,
+          assignedGeneCount: 0,
+          unassignedClassroomCount: 0,
+          unassignedProfessorCount: 0,
+        },
+        generation: 0,
+        createdAt: generatedSchedule.createdAt,
+      },
+      slotCatalog,
+    );
+
+    const itemByGeneId = new Map(
+      generatedSchedule.items.map((item) => [
+        item.generatedScheduleItemId.toString(),
+        {
+          courseName: item.configCourse.course.name,
+          professorName: item.configProfessor
+            ? `${item.configProfessor.professor.firstName} ${item.configProfessor.professor.lastName}`
+            : undefined,
+          classroomName: item.configClassroom?.classroom.name,
+        },
+      ]),
+    );
+
     const response: Record<string, unknown> = {
       generatedScheduleId: generatedSchedule.generatedScheduleId,
       scheduleConfigId: generatedSchedule.scheduleConfigId,
@@ -177,6 +241,9 @@ export class GeneratedScheduleService {
         label: `${toHourMinute(slot.startMinuteOfDay)}-${toHourMinute(slot.endMinuteOfDay)}`,
       })),
       items,
+      warnings: evaluated.violationDetails.map((detail) =>
+        toDetailedWarning(detail, itemByGeneId),
+      ),
       createdAt: generatedSchedule.createdAt,
       updatedAt: generatedSchedule.updatedAt,
     };
@@ -226,6 +293,16 @@ export class GeneratedScheduleService {
         active: true,
       },
       include: {
+        configCourse: {
+          include: {
+            course: true,
+          },
+        },
+        configClassroom: {
+          include: {
+            classroom: true,
+          },
+        },
         configProfessor: {
           include: {
             professor: true,
@@ -277,6 +354,7 @@ export class GeneratedScheduleService {
       softPenalty: 0,
       feasibilityPenalty: 0,
       violations: [],
+      violationDetails: [],
       metrics: {
         requiredGeneCount: 0,
         assignedGeneCount: 0,
@@ -304,14 +382,25 @@ export class GeneratedScheduleService {
       },
     });
 
+    const itemByGeneId = new Map(
+      items.map((item) => [
+        item.generatedScheduleItemId.toString(),
+        {
+          courseName: item.configCourse.course.name,
+          professorName: item.configProfessor
+            ? `${item.configProfessor.professor.firstName} ${item.configProfessor.professor.lastName}`
+            : undefined,
+          classroomName: item.configClassroom?.classroom.name,
+        },
+      ]),
+    );
+
     return {
       generatedScheduleId,
       updatedItemId: generatedScheduleItemId,
-      warnings: evaluated.violations.map((code) => ({
-        code,
-        severity: 'warning',
-        message: code,
-      })),
+      warnings: evaluated.violationDetails.map((detail) =>
+        toDetailedWarning(detail, itemByGeneId),
+      ),
       summary: {
         fitness: evaluated.fitness,
         hardPenalty: evaluated.hardPenalty,
@@ -361,4 +450,45 @@ function toAssignmentStatus(value: string): AssignmentStatus {
     default:
       return AssignmentStatus.ASSIGNED;
   }
+}
+
+function toDetailedWarning(
+  detail: ViolationDetail,
+  itemByGeneId: Map<
+    string,
+    {
+      courseName?: string;
+      professorName?: string;
+      classroomName?: string;
+    }
+  >,
+) {
+  const itemDetails = detail.geneIds
+    .map((geneId) => {
+      const item = itemByGeneId.get(geneId);
+      if (!item) {
+        return null;
+      }
+      return {
+        geneId,
+        courseName: item.courseName,
+        professorName: item.professorName,
+        classroomName: item.classroomName,
+      };
+    })
+    .filter((value) => value !== null);
+
+  return {
+    code: detail.code,
+    severity: 'warning',
+    message: getViolationMessageEs(detail.code),
+    dayIndex: detail.dayIndex,
+    slotIndex: detail.slotIndex,
+    geneIds: detail.geneIds,
+    courseCodes: detail.courseCodes,
+    sectionIndexes: detail.sectionIndexes,
+    configProfessorIds: detail.configProfessorIds,
+    configClassroomIds: detail.configClassroomIds,
+    items: itemDetails,
+  };
 }

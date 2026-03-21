@@ -8,6 +8,7 @@ import {
   type SlotCatalog,
 } from '../domain/slot-catalog';
 import { ViolationCode } from '../domain/violation-code';
+import type { ViolationDetail } from '../domain/violation-detail';
 
 export interface FitnessWeights {
   hard: number;
@@ -35,6 +36,7 @@ export function evaluateChromosome(
   let unassignedProfessorCount = 0;
 
   const violations = new Set<ViolationCode>();
+  const violationDetails: ViolationDetail[] = [];
 
   const professorOccupancy = new Map<string, bigint[]>();
   const classroomOccupancy = new Map<string, bigint[]>();
@@ -52,8 +54,28 @@ export function evaluateChromosome(
       hardPenalty += weights.hard;
       if (gene.sessionType === SessionType.LAB) {
         violations.add(ViolationCode.INVALID_LAB_BLOCK);
+        addViolationDetail(violationDetails, {
+          code: ViolationCode.INVALID_LAB_BLOCK,
+          dayIndex: gene.dayIndex,
+          geneIds: [gene.geneId],
+          configCourseIds: [gene.configCourseId],
+          courseCodes: [gene.courseCode],
+          sectionIndexes: [gene.sectionIndex],
+          configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+          configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+        });
       } else if (isLabDay(gene.dayIndex)) {
         violations.add(ViolationCode.INVALID_CLASS_LAB_DAY_BLOCK);
+        addViolationDetail(violationDetails, {
+          code: ViolationCode.INVALID_CLASS_LAB_DAY_BLOCK,
+          dayIndex: gene.dayIndex,
+          geneIds: [gene.geneId],
+          configCourseIds: [gene.configCourseId],
+          courseCodes: [gene.courseCode],
+          sectionIndexes: [gene.sectionIndex],
+          configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+          configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+        });
       }
       continue;
     }
@@ -61,6 +83,16 @@ export function evaluateChromosome(
     if (gene.sessionType === SessionType.LAB && gene.periodCount !== 3) {
       hardPenalty += weights.hard;
       violations.add(ViolationCode.INVALID_LAB_BLOCK);
+      addViolationDetail(violationDetails, {
+        code: ViolationCode.INVALID_LAB_BLOCK,
+        dayIndex: gene.dayIndex,
+        geneIds: [gene.geneId],
+        configCourseIds: [gene.configCourseId],
+        courseCodes: [gene.courseCode],
+        sectionIndexes: [gene.sectionIndex],
+        configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+        configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+      });
     }
 
     if (
@@ -70,6 +102,16 @@ export function evaluateChromosome(
     ) {
       hardPenalty += weights.hard;
       violations.add(ViolationCode.INVALID_CLASS_LAB_DAY_BLOCK);
+      addViolationDetail(violationDetails, {
+        code: ViolationCode.INVALID_CLASS_LAB_DAY_BLOCK,
+        dayIndex: gene.dayIndex,
+        geneIds: [gene.geneId],
+        configCourseIds: [gene.configCourseId],
+        courseCodes: [gene.courseCode],
+        sectionIndexes: [gene.sectionIndex],
+        configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+        configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+      });
     }
 
     if (
@@ -81,6 +123,17 @@ export function evaluateChromosome(
     ) {
       hardPenalty += weights.hard;
       violations.add(ViolationCode.INVALID_FIXED_ASSIGNMENT);
+      addViolationDetail(violationDetails, {
+        code: ViolationCode.INVALID_FIXED_ASSIGNMENT,
+        dayIndex: gene.dayIndex,
+        slotIndex: gene.startSlot,
+        geneIds: [gene.geneId],
+        configCourseIds: [gene.configCourseId],
+        courseCodes: [gene.courseCode],
+        sectionIndexes: [gene.sectionIndex],
+        configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+        configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+      });
     }
 
     if (gene.assignmentStatus === AssignmentStatus.ASSIGNED) {
@@ -94,6 +147,17 @@ export function evaluateChromosome(
       feasibilityPenalty += weights.feasibility;
       unassignedClassroomCount += 1;
       violations.add(ViolationCode.UNASSIGNED_CLASSROOM);
+      addViolationDetail(violationDetails, {
+        code: ViolationCode.UNASSIGNED_CLASSROOM,
+        dayIndex: gene.dayIndex,
+        slotIndex: gene.startSlot,
+        geneIds: [gene.geneId],
+        configCourseIds: [gene.configCourseId],
+        courseCodes: [gene.courseCode],
+        sectionIndexes: [gene.sectionIndex],
+        configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+        configClassroomIds: [],
+      });
     }
 
     if (
@@ -103,6 +167,17 @@ export function evaluateChromosome(
       feasibilityPenalty += weights.feasibility;
       unassignedProfessorCount += 1;
       violations.add(ViolationCode.UNASSIGNED_PROFESSOR);
+      addViolationDetail(violationDetails, {
+        code: ViolationCode.UNASSIGNED_PROFESSOR,
+        dayIndex: gene.dayIndex,
+        slotIndex: gene.startSlot,
+        geneIds: [gene.geneId],
+        configCourseIds: [gene.configCourseId],
+        courseCodes: [gene.courseCode],
+        sectionIndexes: [gene.sectionIndex],
+        configProfessorIds: [],
+        configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+      });
     }
 
     if (gene.sessionType === SessionType.CLASS && isLabDay(gene.dayIndex)) {
@@ -122,6 +197,17 @@ export function evaluateChromosome(
       ) {
         hardPenalty += weights.hard;
         violations.add(ViolationCode.PROFESSOR_UNAVAILABLE);
+        addViolationDetail(violationDetails, {
+          code: ViolationCode.PROFESSOR_UNAVAILABLE,
+          dayIndex: gene.dayIndex,
+          slotIndex,
+          geneIds: [gene.geneId],
+          configCourseIds: [gene.configCourseId],
+          courseCodes: [gene.courseCode],
+          sectionIndexes: [gene.sectionIndex],
+          configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+          configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+        });
       }
 
       const sectionKey = `${gene.configCourseId.toString()}:${gene.sectionIndex}`;
@@ -129,6 +215,17 @@ export function evaluateChromosome(
       if (sectionValues.includes(sectionKey)) {
         hardPenalty += weights.hard;
         violations.add(ViolationCode.SECTION_COLLISION);
+        addViolationDetail(violationDetails, {
+          code: ViolationCode.SECTION_COLLISION,
+          dayIndex: gene.dayIndex,
+          slotIndex,
+          geneIds: [gene.geneId],
+          configCourseIds: [gene.configCourseId],
+          courseCodes: [gene.courseCode],
+          sectionIndexes: [gene.sectionIndex],
+          configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+          configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+        });
       }
       sectionValues.push(sectionKey);
       sectionOccupancy.set(slotKey, sectionValues);
@@ -138,6 +235,17 @@ export function evaluateChromosome(
         if (profValues.includes(gene.configProfessorId)) {
           hardPenalty += weights.hard;
           violations.add(ViolationCode.PROFESSOR_COLLISION);
+          addViolationDetail(violationDetails, {
+            code: ViolationCode.PROFESSOR_COLLISION,
+            dayIndex: gene.dayIndex,
+            slotIndex,
+            geneIds: [gene.geneId],
+            configCourseIds: [gene.configCourseId],
+            courseCodes: [gene.courseCode],
+            sectionIndexes: [gene.sectionIndex],
+            configProfessorIds: [gene.configProfessorId],
+            configClassroomIds: withDefinedBigInt(gene.configClassroomId),
+          });
         }
         profValues.push(gene.configProfessorId);
         professorOccupancy.set(slotKey, profValues);
@@ -148,6 +256,17 @@ export function evaluateChromosome(
         if (classroomValues.includes(gene.configClassroomId)) {
           hardPenalty += weights.hard;
           violations.add(ViolationCode.CLASSROOM_COLLISION);
+          addViolationDetail(violationDetails, {
+            code: ViolationCode.CLASSROOM_COLLISION,
+            dayIndex: gene.dayIndex,
+            slotIndex,
+            geneIds: [gene.geneId],
+            configCourseIds: [gene.configCourseId],
+            courseCodes: [gene.courseCode],
+            sectionIndexes: [gene.sectionIndex],
+            configProfessorIds: withDefinedBigInt(gene.configProfessorId),
+            configClassroomIds: [gene.configClassroomId],
+          });
         }
         classroomValues.push(gene.configClassroomId);
         classroomOccupancy.set(slotKey, classroomValues);
@@ -167,6 +286,28 @@ export function evaluateChromosome(
         if (hasMandatoryAcademicCollision(genesAtSlot[i], genesAtSlot[j])) {
           hardPenalty += weights.hard;
           violations.add(ViolationCode.MANDATORY_ACADEMIC_COLLISION);
+          addViolationDetail(violationDetails, {
+            code: ViolationCode.MANDATORY_ACADEMIC_COLLISION,
+            dayIndex: genesAtSlot[i].dayIndex,
+            geneIds: [genesAtSlot[i].geneId, genesAtSlot[j].geneId],
+            configCourseIds: [
+              genesAtSlot[i].configCourseId,
+              genesAtSlot[j].configCourseId,
+            ],
+            courseCodes: [genesAtSlot[i].courseCode, genesAtSlot[j].courseCode],
+            sectionIndexes: [
+              genesAtSlot[i].sectionIndex,
+              genesAtSlot[j].sectionIndex,
+            ],
+            configProfessorIds: dedupeBigInt([
+              ...withDefinedBigInt(genesAtSlot[i].configProfessorId),
+              ...withDefinedBigInt(genesAtSlot[j].configProfessorId),
+            ]),
+            configClassroomIds: dedupeBigInt([
+              ...withDefinedBigInt(genesAtSlot[i].configClassroomId),
+              ...withDefinedBigInt(genesAtSlot[j].configClassroomId),
+            ]),
+          });
         }
       }
     }
@@ -182,6 +323,7 @@ export function evaluateChromosome(
     feasibilityPenalty,
     softPenalty,
     violations: [...violations],
+    violationDetails,
     metrics: {
       requiredGeneCount: chromosome.genes.length,
       assignedGeneCount,
@@ -189,6 +331,31 @@ export function evaluateChromosome(
       unassignedProfessorCount,
     },
   };
+}
+
+function addViolationDetail(
+  target: ViolationDetail[],
+  detail: ViolationDetail,
+): void {
+  target.push({
+    ...detail,
+    geneIds: [...new Set(detail.geneIds)],
+    configCourseIds: dedupeBigInt(detail.configCourseIds),
+    courseCodes: [...new Set(detail.courseCodes)],
+    sectionIndexes: [...new Set(detail.sectionIndexes)] as Array<1 | 2>,
+    configProfessorIds: dedupeBigInt(detail.configProfessorIds),
+    configClassroomIds: dedupeBigInt(detail.configClassroomIds),
+  });
+}
+
+function withDefinedBigInt(value?: bigint): bigint[] {
+  return value === undefined ? [] : [value];
+}
+
+function dedupeBigInt(values: bigint[]): bigint[] {
+  return [...new Set(values.map((value) => value.toString()))].map((value) =>
+    BigInt(value),
+  );
 }
 
 function isLabDay(dayIndex: number): boolean {

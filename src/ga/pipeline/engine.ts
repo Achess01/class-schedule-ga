@@ -103,6 +103,7 @@ function createChromosome(
     softPenalty: 0,
     feasibilityPenalty: 0,
     violations: [],
+    violationDetails: [],
     metrics: {
       requiredGeneCount: genes.length,
       assignedGeneCount: 0,

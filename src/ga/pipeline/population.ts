@@ -28,6 +28,7 @@ export function initializePopulation(input: GaInputContext): Chromosome[] {
       softPenalty: 0,
       feasibilityPenalty: 0,
       violations: [],
+      violationDetails: [],
       metrics: {
         requiredGeneCount: randomizedGenes.length,
         assignedGeneCount: 0,

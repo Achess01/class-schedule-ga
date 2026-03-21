@@ -56,6 +56,7 @@ function createChromosome(genes: Gene[]): Chromosome {
     softPenalty: 0,
     feasibilityPenalty: 0,
     violations: [],
+    violationDetails: [],
     metrics: {
       requiredGeneCount: 0,
       assignedGeneCount: 0,

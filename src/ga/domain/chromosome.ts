@@ -1,5 +1,6 @@
 import type { Gene } from './gene';
 import type { ViolationCode } from './violation-code';
+import type { ViolationDetail } from './violation-detail';
 
 export interface ChromosomeMetrics {
   requiredGeneCount: number;
@@ -17,6 +18,7 @@ export interface Chromosome {
   softPenalty: number;
   feasibilityPenalty: number;
   violations: ViolationCode[];
+  violationDetails: ViolationDetail[];
   metrics: ChromosomeMetrics;
   generation: number;
   createdAt: Date;
