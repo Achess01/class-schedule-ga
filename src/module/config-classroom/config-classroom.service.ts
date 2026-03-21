@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConfigClassroomDto } from './dto/create-config-classroom.dto';
 import { UpdateConfigClassroomDto } from './dto/update-config-classroom.dto';
@@ -27,6 +31,9 @@ export class ConfigClassroomService {
   async findAll() {
     return this.prismaService.configClassroom.findMany({
       where: { active: true },
+      include: {
+        classroom: true,
+      },
       orderBy: { configClassroomId: 'asc' },
     });
   }
@@ -111,6 +118,17 @@ export class ConfigClassroomService {
         throw new NotFoundException(
           `ScheduleConfig with id ${scheduleConfigId} not found`,
         );
+      }
+    }
+
+    if (classroomId && scheduleConfigId) {
+      const classroomConfig =
+        await this.prismaService.configClassroom.findFirst({
+          where: { classroomId, scheduleConfigId: BigInt(scheduleConfigId) },
+        });
+
+      if (classroomConfig) {
+        throw new ConflictException('Esta clase ya existe en la configuración');
       }
     }
   }

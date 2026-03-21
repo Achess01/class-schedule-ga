@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConfigCourseProfessorDto } from './dto/create-config-course-professor.dto';
 import { UpdateConfigCourseProfessorDto } from './dto/update-config-course-professor.dto';
@@ -25,6 +29,10 @@ export class ConfigCourseProfessorService {
   async findAll() {
     return this.prismaService.configCourseProfessor.findMany({
       where: { active: true },
+      include: {
+        configProfessor: { include: { professor: true } },
+        configCourse: { include: { course: true } },
+      },
       orderBy: { configCourseProfessorId: 'asc' },
     });
   }
@@ -106,6 +114,22 @@ export class ConfigCourseProfessorService {
       if (!configCourse || !configCourse.active) {
         throw new NotFoundException(
           `ConfigCourse with id ${configCourseId} not found`,
+        );
+      }
+    }
+
+    if (configCourseId && configProfessorId) {
+      const configCourseProfessor =
+        await this.prismaService.configCourseProfessor.findFirst({
+          where: {
+            configProfessorId: BigInt(configProfessorId),
+            configCourseId: BigInt(configCourseId),
+          },
+        });
+
+      if (configCourseProfessor) {
+        throw new ConflictException(
+          'Este profesor y curso ya están configurados',
         );
       }
     }

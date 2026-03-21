@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConfigProfessorDto } from './dto/create-config-professor.dto';
 import { UpdateConfigProfessorDto } from './dto/update-config-professor.dto';
@@ -25,6 +29,9 @@ export class ConfigProfessorService {
   async findAll() {
     return this.prismaService.configProfessor.findMany({
       where: { active: true },
+      include: {
+        professor: true,
+      },
       orderBy: { configProfessorId: 'asc' },
     });
   }
@@ -105,6 +112,18 @@ export class ConfigProfessorService {
       if (!scheduleConfig || !scheduleConfig.active) {
         throw new NotFoundException(
           `ScheduleConfig with id ${scheduleConfigId} not found`,
+        );
+      }
+    }
+
+    if (professorCode && scheduleConfigId) {
+      const exists = await this.prismaService.configProfessor.findFirst({
+        where: { professorCode, scheduleConfigId: BigInt(scheduleConfigId) },
+      });
+
+      if (exists) {
+        throw new ConflictException(
+          'El profesor ya está agregado a esta configuración',
         );
       }
     }

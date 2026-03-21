@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -43,6 +44,7 @@ export class ConfigCourseService {
   async findAll() {
     return this.prismaService.configCourse.findMany({
       where: { active: true },
+      include: { course: true },
       orderBy: { configCourseId: 'asc' },
     });
   }
@@ -138,6 +140,19 @@ export class ConfigCourseService {
       });
       if (!course || !course.active) {
         throw new NotFoundException(`Course with code ${courseCode} not found`);
+      }
+    }
+
+    if (courseCode && scheduleConfigId) {
+      const exits = await this.prismaService.configCourse.findFirst({
+        where: {
+          scheduleConfigId: BigInt(scheduleConfigId),
+          courseCode: courseCode,
+        },
+      });
+
+      if (exits) {
+        throw new ConflictException('Este curso ya existe en la configuración');
       }
     }
   }
