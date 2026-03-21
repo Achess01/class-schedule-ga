@@ -105,15 +105,11 @@ export class ConfigCourseService {
     });
   }
 
-  async remove(configCourseId: number, userId: number) {
+  async remove(configCourseId: number) {
     await this.findOne(configCourseId);
 
-    return this.prismaService.configCourse.update({
+    return this.prismaService.configCourse.delete({
       where: { configCourseId: BigInt(configCourseId) },
-      data: {
-        active: false,
-        updatedBy: String(userId),
-      },
     });
   }
 
