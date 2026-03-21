@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Param,
   ParseIntPipe,
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GaService } from './ga.service';
+import { RunGaDto } from './dto/RunGaDto';
 
 @ApiTags('ga')
 @Controller('ga')
@@ -51,8 +53,9 @@ export class GaController {
   })
   @Post('generate/:scheduleConfigId')
   async generate(
+    @Body() runGaDto: RunGaDto,
     @Param('scheduleConfigId', ParseIntPipe) scheduleConfigId: number,
   ) {
-    return this.gaService.generate(scheduleConfigId);
+    return this.gaService.generate(scheduleConfigId, runGaDto.name);
   }
 }

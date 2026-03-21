@@ -12,7 +12,7 @@ export class GaService {
     private readonly generatedScheduleService: GeneratedScheduleService,
   ) {}
 
-  async generate(scheduleConfigId: number) {
+  async generate(scheduleConfigId: number, generatedName: string) {
     const gaInput = await buildGaInput(
       this.prismaService,
       BigInt(scheduleConfigId),
@@ -23,6 +23,7 @@ export class GaService {
     const generatedSchedule =
       await this.generatedScheduleService.createFromChromosome(
         BigInt(scheduleConfigId),
+        generatedName,
         chromosome,
         {
           periodDurationM: gaInput.slotCatalog.periodDurationM,

@@ -14,6 +14,7 @@ export class GeneratedScheduleService {
 
   async createFromChromosome(
     scheduleConfigId: bigint,
+    generatedName: string,
     chromosome: Chromosome,
     snapshot: {
       periodDurationM: number;
@@ -33,7 +34,7 @@ export class GeneratedScheduleService {
           morningEndTime: snapshot.morningEndTime,
           afternoonStartTime: snapshot.afternoonStartTime,
           afternoonEndTime: snapshot.afternoonEndTime,
-          name: `Generated ${new Date().toISOString()}`,
+          name: generatedName,
           status: 'DRAFT',
           fitness: chromosome.fitness,
           hardPenalty: chromosome.hardPenalty,

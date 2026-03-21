@@ -184,7 +184,10 @@ describe('GaService integration schedule generation', () => {
       asPrismaDependency(prismaMock),
       generatedScheduleServiceMock,
     );
-    const result = await service.generate(1);
+    const result = await service.generate(
+      1,
+      `Generated ${new Date().toISOString()}`,
+    );
 
     const items =
       (result.items as Array<{
