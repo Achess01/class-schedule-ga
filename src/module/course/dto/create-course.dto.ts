@@ -53,7 +53,10 @@ export class CreateCourseDto {
   @Max(7)
   numberOfPeriods: number;
 
-  @ApiProperty({ example: 'MORNING', enum: ['MORNING', 'AFTERNOON', 'NIGHT', 'BOTH'] })
+  @ApiProperty({
+    example: 'MORNING',
+    enum: ['MORNING', 'AFTERNOON', 'NIGHT', 'BOTH'],
+  })
   @IsEnum(ScheduleType)
   typeOfSchedule: string;
 }

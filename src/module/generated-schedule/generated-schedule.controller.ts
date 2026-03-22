@@ -3,8 +3,10 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   Patch,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -13,12 +15,14 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { JwtPayload } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { SessionType } from '../../ga/domain/session-type';
 import { GeneratedScheduleService } from './generated-schedule.service';
 import { UpdateGeneratedScheduleItemDto } from './dto/update-generated-schedule-item.dto';
 
@@ -32,14 +36,26 @@ export class GeneratedScheduleController {
   @ApiOperation({ summary: 'Get generated schedule by id' })
   @ApiOkResponse({ description: 'Generated schedule fetched successfully' })
   @ApiNotFoundResponse({ description: 'Generated schedule not found' })
+  @ApiQuery({ name: 'semester', required: false, type: Number })
+  @ApiQuery({ name: 'careerCode', required: false, type: Number })
+  @ApiQuery({ name: 'sessionType', required: false, enum: SessionType })
   @ApiUnauthorizedResponse({
     description: 'Missing or invalid authorization token',
   })
   @Get(':generatedScheduleId')
   async findOne(
     @Param('generatedScheduleId', ParseIntPipe) generatedScheduleId: number,
+    @Query('semester', new ParseIntPipe({ optional: true })) semester?: number,
+    @Query('careerCode', new ParseIntPipe({ optional: true }))
+    careerCode?: number,
+    @Query('sessionType', new ParseEnumPipe(SessionType, { optional: true }))
+    sessionType?: SessionType,
   ) {
-    return this.generatedScheduleService.findOne(BigInt(generatedScheduleId));
+    return this.generatedScheduleService.findOne(BigInt(generatedScheduleId), {
+      semester,
+      careerCode,
+      sessionType,
+    });
   }
 
   @ApiOperation({ summary: 'Get generated schedule list' })

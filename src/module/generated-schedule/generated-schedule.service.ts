@@ -80,13 +80,41 @@ export class GeneratedScheduleService {
     return this.prismaService.generatedSchedule.findMany();
   }
 
-  async findOne(generatedScheduleId: bigint) {
+  async findOne(
+    generatedScheduleId: bigint,
+    filters?: {
+      semester?: number;
+      careerCode?: number;
+      sessionType?: SessionType;
+    },
+  ) {
+    const itemsWhere: {
+      active: boolean;
+      semester?: number;
+      sessionType?: SessionType;
+      careerCodes?: { has: number };
+    } = {
+      active: true,
+    };
+
+    if (filters?.semester !== undefined) {
+      itemsWhere.semester = filters.semester;
+    }
+
+    if (filters?.sessionType !== undefined) {
+      itemsWhere.sessionType = filters.sessionType;
+    }
+
+    if (filters?.careerCode !== undefined) {
+      itemsWhere.careerCodes = { has: filters.careerCode };
+    }
+
     const generatedSchedule =
       await this.prismaService.generatedSchedule.findUnique({
         where: { generatedScheduleId },
         include: {
           items: {
-            where: { active: true },
+            where: itemsWhere,
             include: {
               configCourse: {
                 include: {
