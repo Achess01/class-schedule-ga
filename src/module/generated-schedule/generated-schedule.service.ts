@@ -7,6 +7,7 @@ import { evaluateChromosome } from '../../ga/fitness/fitness-evaluator';
 import { getViolationMessageEs } from '../../ga/domain/violation-code';
 import type { ViolationDetail } from '../../ga/domain/violation-detail';
 import { PrismaService } from '../../prisma/prisma.service';
+import { STUDENT_SCHEDULES_URL } from '../../constants';
 
 @Injectable()
 export class GeneratedScheduleService {
@@ -424,6 +425,14 @@ export class GeneratedScheduleService {
       ]),
     );
 
+    this.callWebhook(generatedScheduleId)
+      .then(() => {
+        console.log('Enviado');
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+
     return {
       generatedScheduleId,
       updatedItemId: generatedScheduleItemId,
@@ -437,6 +446,21 @@ export class GeneratedScheduleService {
         feasibilityPenalty: evaluated.feasibilityPenalty,
       },
     };
+  }
+
+  private async callWebhook(generatedScheduleId: bigint) {
+    const url = `${STUDENT_SCHEDULES_URL}/class-schedules/notify-change/${generatedScheduleId}`;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch {
+      console.error('Error al comunicarse con el webhook');
+    }
   }
 }
 
